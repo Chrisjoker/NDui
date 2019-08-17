@@ -63,14 +63,14 @@ C.Tooltips = {
 
 -- 信息条
 C.Infobar = {
-	Guild	 		= true,												-- 公会信息
-	GuildPos 		= {"TOPLEFT", UIParent, 15, -6},					-- 公会信息位置
-	Friends 		= true,												-- 好友模块
-	FriendsPos 		= {"TOPLEFT", UIParent, 105, -6},					-- 好友模块位置
-	System			= true,												-- 帧数/延迟
-	SystemPos		= {"TOPLEFT", UIParent, 190, -6},					-- 帧数/延迟位置
+	-- Guild	 		= true,												-- 公会信息
+	-- GuildPos 		= {"TOPLEFT", UIParent, 15, -6},					-- 公会信息位置
+	-- Friends 		= true,												-- 好友模块
+	-- FriendsPos 		= {"TOPLEFT", UIParent, 105, -6},					-- 好友模块位置
 	Memory			= true,												-- 内存占用
-	MemoryPos		= {"TOPLEFT", UIParent, 285, -6},					-- 内存占用位置
+	MemoryPos		= {"TOPLEFT", UIParent, 15, -6},					-- 内存占用位置
+	System			= true,												-- 帧数/延迟
+	SystemPos		= {"TOPLEFT", UIParent, 15, -6},					-- 帧数/延迟位置
 	MaxAddOns		= 12,												-- 插件信息显示数量
 	Location		= true,												-- 区域信息
 	LocationPos		= {"TOPLEFT", UIParent, 380, -6},					-- 区域信息位置
