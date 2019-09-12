@@ -427,7 +427,7 @@ function UF:CreateCastBar(self)
 
 	local cb = CreateFrame("StatusBar", "oUF_Castbar"..mystyle, self)
 	cb:SetHeight(20)
-	cb:SetWidth(self:GetWidth() - 22)
+	cb:SetWidth(256)
 	B.CreateSB(cb, true, .3, .7, 1)
 
 	if mystyle == "player" then
@@ -441,10 +441,10 @@ function UF:CreateCastBar(self)
 	elseif mystyle == "focus" then
 		cb:SetFrameLevel(10)
 		cb:SetSize(NDuiDB["UFs"]["FocusCBWidth"], NDuiDB["UFs"]["FocusCBHeight"])
-		createBarMover(cb, L["Focus Castbar"], "FocusCB", C.UFs.Focuscb)
+		-- createBarMover(cb, L["Focus Castbar"], "FocusCB", C.UFs.Focuscb)
 	elseif mystyle == "boss" or mystyle == "arena" then
 		cb:SetPoint("TOPRIGHT", self.Power, "BOTTOMRIGHT", 0, -8)
-		cb:SetSize(self:GetWidth(), 10)
+		cb:SetSize(self:GetWidth(), 20)
 	elseif mystyle == "nameplate" then
 		cb:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -5)
 		cb:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -5)
@@ -456,16 +456,21 @@ function UF:CreateCastBar(self)
 	name:SetPoint("RIGHT", timer, "LEFT", -5, 0)
 	name:SetJustifyH("LEFT")
 
-	if mystyle ~= "boss" and mystyle ~= "arena" then
+	if mystyle ~= "boss" and mystyle ~= "arena" and mystyle ~= "player" then
 		cb.Icon = cb:CreateTexture(nil, "ARTWORK")
 		cb.Icon:SetSize(cb:GetHeight(), cb:GetHeight())
-		cb.Icon:SetPoint("BOTTOMRIGHT", cb, "BOTTOMLEFT", -3, 0)
+		cb.Icon:SetPoint("BOTTOMLEFT", cb, "BOTTOMRIGHT", 5, 0)
 		cb.Icon:SetTexCoord(unpack(DB.TexCoord))
 		B.SetBD(cb.Icon)
 	end
 
 	if mystyle == "player" then
-		local safe = cb:CreateTexture(nil,"OVERLAY")
+		-- cb.Icon = cb:CreateTexture(nil, "ARTWORK")
+		-- cb.Icon:SetSize(cb:GetHeight(), cb:GetHeight())
+		-- cb.Icon:SetPoint("BOTTOMRIGHT", cb, "BOTTOMLEFT", -6, 0)
+		-- cb.Icon:SetTexCoord(unpack(DB.TexCoord))
+		-- B.CreateSD(cb.Icon, 3, 3)
+		local safe = cb:CreateTexture(nil, "OVERLAY")
 		safe:SetTexture(DB.normTex)
 		safe:SetVertexColor(1, 0, 0, .6)
 		safe:SetPoint("TOPRIGHT")
@@ -474,7 +479,7 @@ function UF:CreateCastBar(self)
 		cb.SafeZone = safe
 
 		if NDuiDB["UFs"]["LagString"] then
-			local lag = B.CreateFS(cb, 10, "", false, "CENTER", -6, 17)
+			local lag = B.CreateFS(cb, 10, "", false, "CENTER", -6, -18)
 			cb.Lag = lag
 			self:RegisterEvent("CURRENT_SPELL_CAST_CHANGED", B.OnCastSent, true)
 		end
@@ -702,20 +707,20 @@ function UF:CreateAuras(self)
 	bu:SetFrameLevel(self:GetFrameLevel() + 2)
 	bu.gap = true
 	bu.initialAnchor = "TOPLEFT"
-	bu["growth-y"] = "DOWN"
+	bu["growth-y"] = "UP"
 	bu.spacing = 3
 	if mystyle == "target" then
-		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -10)
+		bu:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 30)
 		bu.numBuffs = 20
 		bu.numDebuffs = 15
 		bu.iconsPerRow = NDuiDB["UFs"]["TargetAurasPerRow"]
 	elseif mystyle == "tot" then
-		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -5)
+		bu:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 25)
 		bu.numBuffs = 0
 		bu.numDebuffs = 10
 		bu.iconsPerRow = 5
 	elseif mystyle == "focus" then
-		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -10)
+		bu:SetPoint("TOPLEFT", self.Health, "TOPLEFT", 0, 30)
 		bu.numBuffs = 0
 		bu.numDebuffs = 14
 		bu.iconsPerRow = 7
@@ -735,12 +740,12 @@ function UF:CreateAuras(self)
 		bu.gap = false
 		bu.disableMouse = NDuiDB["UFs"]["AurasClickThrough"]
 	elseif mystyle == "nameplate" then
-		bu.initialAnchor = "BOTTOMLEFT"
+		bu.initialAnchor = "TOPLEFT"
 		bu["growth-y"] = "UP"
 		if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
-			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 10 + _G.oUF_ClassPowerBar:GetHeight())
+			bu:SetPoint("TOPLEFT", self.nameText, "BOTTOMLEFT", 0, 10 + _G.oUF_ClassPowerBar:GetHeight())
 		else
-			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
+			bu:SetPoint("TOPLEFT", self.nameText, "BOTTOMLEFT", 0, 5)
 		end
 		bu.numTotal = NDuiDB["Nameplate"]["maxAuras"]
 		bu.size = NDuiDB["Nameplate"]["AuraSize"]

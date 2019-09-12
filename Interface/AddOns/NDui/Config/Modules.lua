@@ -28,15 +28,15 @@ C.Auras = {
 
 -- 头像相关
 C.UFs = {
-	Playercb		= {"BOTTOM", UIParent, "BOTTOM", 0, 175},			-- 玩家施法条默认位置
-	Targetcb		= {"BOTTOM", UIParent, "BOTTOM", 0, 335},			-- 目标施法条默认位置
+	Playercb		= {"CENTER", UIParent, "CENTER", -12, -168},			-- 玩家施法条默认位置
+	Targetcb		= {"CENTER", UIParent, "CENTER", 248, -168},			-- 目标施法条默认位置
 	Focuscb			= {"CENTER", UIParent, "CENTER", 0, 200},			-- 焦点施法条默认位置
 
-	PlayerPos		= {"TOPRIGHT", UIParent, "BOTTOM", -200, 300},		-- 玩家框体默认位置
-	TargetPos		= {"TOPLEFT", UIParent, "BOTTOM", 200, 300},		-- 目标框体默认位置
-	ToTPos			= {"BOTTOM", UIParent, "BOTTOM", 136, 250},			-- 目标的目标框体默认位置
-	PetPos			= {"BOTTOM", UIParent, "BOTTOM", -136, 250},		-- 宠物框体默认位置
-	FocusPos		= {"LEFT", UIParent, "LEFT", 5, -150},				-- 焦点框体默认位置
+	PlayerPos		= {"TOPRIGHT", UIParent, "BOTTOM", -133, 360},		-- 玩家框体默认位置
+	TargetPos		= {"TOPLEFT", UIParent, "BOTTOM", 133, 360},		-- 目标框体默认位置
+	ToTPos			= {"CENTER", UIParent, "CENTER", 454, -198},			-- 目标的目标框体默认位置
+	PetPos			= {"CENTER", UIParent, "CENTER", -454, -198},		-- 宠物框体默认位置
+	FocusPos		= {"CENTER", UIParent, "CENTER", 256, 128},				-- 焦点框体默认位置
 	PlayerPlate		= {"BOTTOM", UIParent, "BOTTOM", 0, 400},			-- 玩家姓名板默认位置
 
 	BarPoint		= {"TOPLEFT", 12, 4},								-- 资源条位置（以自身头像为基准）
@@ -69,6 +69,8 @@ C.Infobar = {
 	LatencyPos		= {"TOPLEFT", UIParent, 195, -6},					-- 延迟信息位置
 	System			= true,												-- 帧数
 	SystemPos		= {"TOPLEFT", UIParent, 285, -6},					-- 帧数信息位置
+	-- Memory			= true,												-- 内存占用
+	-- MemoryPos		= {"TOPLEFT", UIParent, 15, -6},					-- 内存占用位置
 	MaxAddOns		= 12,												-- 插件信息显示数量
 	Location		= true,												-- 区域信息
 	LocationPos		= {"TOPLEFT", UIParent, 380, -6},					-- 区域信息位置

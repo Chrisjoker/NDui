@@ -114,9 +114,9 @@ function module:OnLogin()
 
 	if not C.Infobar.AutoAnchor then return end
 	for index, info in pairs(self.modules) do
-		if index == 1 or index == 6 then
+		if index == 1 or index == 9 then
 			info.text:SetPoint(unpack(info.point))
-		elseif index < 6 then
+		elseif index < 9 then
 			info.text:SetPoint("LEFT", self.modules[index-1], "RIGHT", 20, 0)
 		else
 			info.text:SetPoint("RIGHT", self.modules[index-1], "LEFT", -30, 0)

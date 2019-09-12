@@ -1,1 +1,5 @@
-Media/
+*
+!Interface/Addons/NDui
+!Interface/Addons/AuroraClassic
+!Interface/Addons/!BaudErrorFrame
+!Interface/Addons/Skada

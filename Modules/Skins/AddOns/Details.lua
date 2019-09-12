@@ -25,15 +25,15 @@ local function ReskinDetails()
 		B.CreateTex(bg)
 		instance.baseframe.bg = bg
 
-		if instance:GetId() <= 2 then
-			local open, close = S:CreateToggle(instance.baseframe)
-			open:HookScript("OnClick", function()
-				instance:ShowWindow()
-			end)
-			close:HookScript("OnClick", function()
-				instance:HideWindow()
-			end)
-		end
+		-- if instance:GetId() <= 2 then
+		-- 	local open, close = S:CreateToggle(instance.baseframe)
+		-- 	open:HookScript("OnClick", function()
+		-- 		instance:ShowWindow()
+		-- 	end)
+		-- 	close:HookScript("OnClick", function()
+		-- 		instance:HideWindow()
+		-- 	end)
+		-- end
 
 		instance.styled = true
 	end

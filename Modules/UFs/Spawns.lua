@@ -8,7 +8,7 @@ local format, tostring = string.format, tostring
 -- Units
 local function CreatePlayerStyle(self)
 	self.mystyle = "player"
-	self:SetSize(245, 24*NDuiDB["UFs"]["HeightScale"])
+	self:SetSize(256, 22*NDuiDB["UFs"]["HeightScale"])
 
 	UF:CreateHeader(self)
 	UF:CreateHealthBar(self)
@@ -39,7 +39,7 @@ end
 
 local function CreateTargetStyle(self)
 	self.mystyle = "target"
-	self:SetSize(245, 24*NDuiDB["UFs"]["HeightScale"])
+	self:SetSize(400, 30*NDuiDB["UFs"]["HeightScale"])
 
 	UF:CreateHeader(self)
 	UF:CreateHealthBar(self)

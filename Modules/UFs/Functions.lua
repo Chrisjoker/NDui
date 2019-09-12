@@ -348,7 +348,7 @@ function UF:CreateCastBar(self)
 		cb.SafeZone = safe
 
 		if NDuiDB["UFs"]["LagString"] then
-			local lag = B.CreateFS(cb, 10, "", false, "CENTER", -6, 17)
+			local lag = B.CreateFS(cb, 10, "", false, "CENTER", -6, 22)
 			cb.Lag = lag
 			self:RegisterEvent("CURRENT_SPELL_CAST_CHANGED", B.OnCastSent, true)
 		end

@@ -87,8 +87,8 @@ info.onMouseUp = function(self, btn)
 end
 
 info.onEnter = function(self)
-	GameTooltip:SetOwner(self, "ANCHOR_NONE")
-	GameTooltip:SetPoint("BOTTOMRIGHT", UIParent, -15, 30)
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -15)
+	-- GameTooltip:SetPoint("BOTTOMRIGHT", UIParent, -15, 30)
 	GameTooltip:ClearLines()
 	GameTooltip:AddLine(CURRENCY, 0,.6,1)
 	GameTooltip:AddLine(" ")
