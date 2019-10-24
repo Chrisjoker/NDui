@@ -47,7 +47,7 @@ C.defaults = {
 }
 
 C.frames = {}
-C.isNewPatch = GetBuildInfo() == "8.2.5"
+C.isNewPatch = GetBuildInfo() == "8.3.0"
 
 -- [[ Functions ]]
 
@@ -427,6 +427,8 @@ function F:ReskinCheck()
 	tex:SetPoint("BOTTOMRIGHT", -5, 5)
 
 	local ch = self:GetCheckedTexture()
+	ch:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+	ch:SetTexCoord(0, 1, 0, 1)
 	ch:SetDesaturated(true)
 	ch:SetVertexColor(r, g, b)
 end

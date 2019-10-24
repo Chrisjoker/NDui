@@ -513,6 +513,20 @@ local function updateErrorBlocker()
 	B:GetModule("Misc"):UpdateErrorBlocker()
 end
 
+StaticPopupDialogs["RESET_DETAILS"] = {
+	text = L["Reset Details check"],
+	button1 = YES,
+	button2 = NO,
+	OnAccept = function()
+		NDuiADB["ResetDetails"] = true
+		ReloadUI()
+	end,
+	whileDead = 1,
+}
+local function resetDetails()
+	StaticPopup_Show("RESET_DETAILS")
+end
+
 -- Config
 local tabList = {
 	L["Actionbar"],
@@ -552,13 +566,13 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 	},
 	[2] = {
 		{1, "Bags", "Enable", "|cff00cc4c"..L["Enable Bags"]},
-		{1, "Bags", "ItemFilter", L["Bags ItemFilter"]},
-		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"], true},
 		{},--blank
+		{1, "Bags", "ItemFilter", L["Bags ItemFilter"].."*"},
+		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"].."*", true},
+		{1, "Bags", "GatherEmpty", L["Bags GatherEmpty"].."*"},
+		{1, "Bags", "ReverseSort", L["Bags ReverseSort"].."*", true, nil, updateBagSortOrder},
 		{1, "Bags", "BagsiLvl", L["Bags Itemlevel"]},
 		{1, "Bags", "DeleteButton", L["Bags DeleteButton"], true},
-		{1, "Bags", "ReverseSort", L["Bags ReverseSort"].."*", nil, nil, updateBagSortOrder},
-		{1, "Bags", "GatherEmpty", "|cff00cc4c"..L["Bags GatherEmpty"], true},
 		{},--blank
 		{3, "Bags", "BagsScale", L["Bags Scale"], false, {.5, 1.5, 1}},
 		{3, "Bags", "IconSize", L["Bags IconSize"], true, {30, 42, 0}},
@@ -635,8 +649,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{1, "Nameplate", "CustomUnitColor", "|cff00cc4c"..L["CustomUnitColor"].."*", nil, nil, updateCustomUnitList},
 		{5, "Nameplate", "CustomColor", L["Custom Color"].."*", 2},
-		{2, "Nameplate", "UnitList", L["UnitColor List"].."*", nil, nil, updateCustomUnitList},
-		{2, "Nameplate", "ShowPowerList", L["ShowPowerList"].."*", true, nil, updatePowerUnitList},
+		{2, "Nameplate", "UnitList", L["UnitColor List"].."*", nil, nil, updateCustomUnitList, L["CustomUnitTips"]},
+		{2, "Nameplate", "ShowPowerList", L["ShowPowerList"].."*", true, nil, updatePowerUnitList, L["CustomUnitTips"]},
 		{1, "Nameplate", "TankMode", "|cff00cc4c"..L["Tank Mode"].."*"},
 		{1, "Nameplate", "DPSRevertThreat", L["DPS Revert Threat"].."*", true},
 		{5, "Nameplate", "SecureColor", L["Secure Color"].."*"},
@@ -722,7 +736,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Chat", "EnableFilter", "|cff00cc4c"..L["Enable Chatfilter"]},
 		{1, "Chat", "BlockAddonAlert", L["Block Addon Alert"], true},
 		{3, "Chat", "Matches", L["Keyword Match"].."*", false, {1, 3, 0}},
-		{2, "ACCOUNT", "ChatFilterList", L["Filter List"].."*", true, nil, updateFilterList},
+		{2, "ACCOUNT", "ChatFilterList", L["Filter List"].."*", true, nil, updateFilterList, L["FilterListTip"]},
 		{},--blank
 		{1, "Chat", "Invite", "|cff00cc4c"..L["Whisper Invite"]},
 		{1, "Chat", "GuildInvite", L["Guild Invite Only"].."*"},
@@ -753,7 +767,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Skins", "Bigwigs", L["Bigwigs Skin"]},
 		{1, "Skins", "TMW", L["TMW Skin"], true},
 		{1, "Skins", "WeakAuras", L["WeakAuras Skin"]},
-		{1, "Skins", "Details", L["Details Skin"], true},
+		{1, "Skins", "Details", L["Details Skin"], true, resetDetails},
 		{1, "Skins", "PGFSkin", L["PGF Skin"]},
 		{1, "Skins", "Rematch", L["Rematch Skin"], true},
 	},
@@ -912,7 +926,9 @@ local function CreateOption(i)
 				if callback then callback() end
 			end)
 			eb.title = L["Tips"]
-			B.AddTooltip(eb, "ANCHOR_RIGHT", L["EdieBox Tip"], "info")
+			local tip = L["EdieBox Tip"]
+			if tooltip then tip = tooltip.."|n"..tip end
+			B.AddTooltip(eb, "ANCHOR_RIGHT", tip, "info")
 
 			B.CreateFS(eb, 14, name, "system", "CENTER", 0, 25)
 		-- Slider
@@ -1375,15 +1391,6 @@ local function OpenGUI()
 		end
 	end
 	B:RegisterEvent("PLAYER_REGEN_DISABLED", showLater)
-
-	-- Reset Details skin
-	local detail = B.CreateButton(guiPage[10].child, 50, 25, RESET)
-	detail:SetPoint("TOPLEFT", 480, -300)
-	detail.text:SetTextColor(.6, .8, 1)
-	detail:SetScript("OnClick", function()
-		NDuiADB["ResetDetails"] = true
-		StaticPopup_Show("RELOAD_NDUI")
-	end)
 
 	SelectTab(1)
 end
