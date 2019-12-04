@@ -65,6 +65,7 @@ local defaultSettings = {
 		ClickThrough = false,
 		IconScale = 1,
 		DeprecatedAuras = false,
+		QuakeRing = false,
 	},
 	UFs = {
 		Enable = true,
@@ -252,7 +253,7 @@ local defaultSettings = {
 		Focuser = true,
 		ExpRep = true,
 		Screenshot = false,
-		TradeTab = true,
+		TradeTabs = true,
 		Interrupt = false,
 		OwnInterrupt = true,
 		AlertInInstance = true,
@@ -304,6 +305,7 @@ local accountSettings = {
 	AutoBubbles = false,
 	SystemInfoType = 1,
 	DisableInfobars = false,
+	PartyWatcherSpells = {},
 }
 
 -- Initial settings
@@ -356,6 +358,14 @@ loader:SetScript("OnEvent", function(self, _, addon)
 end)
 
 -- Callbacks
+local function setupUnitFrame()
+	G:SetupUnitFrame(guiPage[3])
+end
+
+local function setupCastbar()
+	G:SetupCastbar(guiPage[3])
+end
+
 local function setupRaidDebuffs()
 	G:SetupRaidDebuffs(guiPage[4])
 end
@@ -368,16 +378,12 @@ local function setupBuffIndicator()
 	G:SetupBuffIndicator(guiPage[4])
 end
 
+local function setupPartyWatcher()
+	G:SetupPartyWatcher(guiPage[4])
+end
+
 local function setupNameplateFilter()
 	G:SetupNameplateFilter(guiPage[5])
-end
-
-local function setupUnitFrame()
-	G:SetupUnitFrame(guiPage[3])
-end
-
-local function setupCastbar()
-	G:SetupCastbar(guiPage[3])
 end
 
 local function setupAuraWatch()
@@ -580,11 +586,11 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{3, "Bags", "BankWidth", L["Bank Width"], true, {10, 20, 0}},
 	},
 	[3] = {
-		{1, "UFs", "Enable", "|cff00cc4c"..L["Enable UFs"], nil, setupUnitFrame},
+		{1, "UFs", "Enable", "|cff00cc4c"..L["Enable UFs"], nil, setupUnitFrame, nil, L["HideUFWarning"]},
 		{},--blank
 		{1, "UFs", "Castbars", "|cff00cc4c"..L["UFs Castbar"], nil, setupCastbar},
 		{1, "UFs", "SwingBar", L["UFs SwingBar"]},
-		{1, "UFs", "SwingTimer", L["UFs SwingTimer"], true},
+		{1, "UFs", "SwingTimer", L["UFs SwingTimer"], true, nil, nil, L["SwingTimer Tip"]},
 		{1, "UFs", "LagString", L["Castbar LagString"]},
 		{1, "UFs", "QuakeTimer", L["UFs QuakeTimer"], true},
 		{},--blank
@@ -607,9 +613,9 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{1, "UFs", "PartyFrame", "|cff00cc4c"..L["UFs PartyFrame"]},
 		{1, "UFs", "HorizonParty", L["Horizon PartyFrame"], true},
-		{1, "UFs", "PartyWatcher", L["UFs PartyWatcher"]},
+		{1, "UFs", "PartyWatcher", L["UFs PartyWatcher"], nil, setupPartyWatcher},
 		{1, "UFs", "PWOnRight", L["PartyWatcherOnRight"], true},
-		{3, "UFs", "PartyWidth", L["PartyFrame Width"].."*(100)", false, {60, 200, 0}, updatePartySize},
+		{3, "UFs", "PartyWidth", L["PartyFrame Width"].."*(100)", false, {80, 200, 0}, updatePartySize},
 		{3, "UFs", "PartyHeight", L["PartyFrame Height"].."*(32)", true, {25, 60, 0}, updatePartySize},
 		{},--blank
 		{1, "UFs", "RaidBuffIndicator", "|cff00cc4c"..L["RaidBuffIndicator"], nil, setupBuffIndicator},
@@ -671,7 +677,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 	},
 	[6] = {
 		{1, "AuraWatch", "Enable", "|cff00cc4c"..L["Enable AuraWatch"], nil, setupAuraWatch},
-		{1, "AuraWatch", "DeprecatedAuras", L["DeprecatedAuras"]},
+		{1, "AuraWatch", "DeprecatedAuras", L["DeprecatedAuras"], true},
+		{1, "AuraWatch", "QuakeRing", L["QuakeRing"].."*"},
 		{1, "AuraWatch", "ClickThrough", L["AuraWatch ClickThrough"]},
 		{3, "AuraWatch", "IconScale", L["AuraWatch IconScale"], true, {.8, 2, 1}},
 		{},--blank
@@ -709,7 +716,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Misc", "Interrupt", "|cff00cc4c"..L["Interrupt Alert"].."*", nil, nil, updateInterruptAlert},
 		{1, "Misc", "AlertInInstance", L["Alert In Instance"].."*", true},
 		{1, "Misc", "OwnInterrupt", L["Own Interrupt"].."*"},
-		{1, "Misc", "BrokenSpell", L["Broken Spell"].."*", true},
+		{1, "Misc", "BrokenSpell", L["Broken Spell"].."*", true, nil, nil, L["BrokenSpellTip"]},
 		{},--blank
 		{1, "Misc", "ExplosiveCount", L["Explosive Alert"].."*", nil, nil, updateExplosiveAlert},
 		{1, "Misc", "PlacedItemAlert", L["Placed Item Alert"].."*", true},
@@ -801,7 +808,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "ACCOUNT", "AutoBubbles", L["AutoBubbles"], true},
 		{},--blank
 		{1, "Misc", "Mail", L["Mail Tool"]},
-		{1, "Misc", "TradeTab", L["TradeTabs"], true},
+		{1, "Misc", "TradeTabs", L["TradeTabs"], true},
 		{1, "Misc", "PetFilter", L["Show PetFilter"]},
 		{1, "Misc", "Screenshot", L["Auto ScreenShot"].."*", true, nil, updateScreenShot},
 		{1, "Misc", "FasterLoot", L["Faster Loot"].."*", nil, nil, updateFasterLoot},
@@ -950,7 +957,7 @@ local function CreateOption(i)
 				s.value:SetText(format("%."..decimal.."f", current))
 				if callback then callback() end
 			end)
-			s.value:SetText(format("%."..step.."f", NDUI_VARIABLE(key, value)))
+			s.value:SetText(format("%."..decimal.."f", NDUI_VARIABLE(key, value)))
 		-- Dropdown
 		elseif optType == 4 then
 			local dd = B.CreateDropDown(parent, 200, 28, data)
@@ -1035,7 +1042,7 @@ local function exportData()
 								end
 							end
 						end
-					elseif KEY == "Mover" or KEY == "RaidClickSets" or KEY == "InternalCD" then
+					elseif KEY == "Mover" or KEY == "RaidClickSets" or KEY == "InternalCD" or KEY == "AuraWatchMover" then
 						text = text..";"..KEY..":"..key
 						for _, v in ipairs(value) do
 							text = text..":"..tostring(v)
@@ -1081,6 +1088,14 @@ local function exportData()
 						local anchor, color, filter = unpack(data)
 						text = text..";ACCOUNT:"..KEY..":"..class..":"..spellID..":"..anchor..":"..color[1]..":"..color[2]..":"..color[3]..":"..tostring(filter or false)
 					end
+				end
+			end
+		elseif KEY == "PartyWatcherSpells" then
+			text = text..";ACCOUNT:"..KEY
+			for spellID, duration in pairs(VALUE) do
+				local name = GetSpellInfo(spellID)
+				if name then
+					text = text..":"..spellID..":"..duration
 				end
 			end
 		end
@@ -1142,8 +1157,9 @@ local function importData()
 			for _, itemID in next, items do
 				NDuiDB[key][value][tonumber(itemID)] = true
 			end
-		elseif key == "Mover" then
+		elseif key == "Mover" or key == "AuraWatchMover" then
 			local relFrom, parent, relTo, x, y = select(3, strsplit(":", option))
+			value = tonumber(value) or value
 			x = tonumber(x)
 			y = tonumber(y)
 			NDuiDB[key][value] = {relFrom, parent, relTo, x, y}
@@ -1181,6 +1197,16 @@ local function importData()
 				filter = toBoolean(filter)
 				if not NDuiADB[value][class] then NDuiADB[value][class] = {} end
 				NDuiADB[value][class][spellID] = {anchor, {r, g, b}, filter}
+			elseif value == "PartyWatcherSpells" then
+				local options = {strsplit(":", option)}
+				local index = 3
+				local spellID = options[index]
+				while spellID do
+					local duration = options[index+1]
+					NDuiADB[value][tonumber(spellID)] = tonumber(duration) or 0
+					index = index + 2
+					spellID = options[index]
+				end
 			end
 		elseif tonumber(arg1) then
 			if value == "DBMCount" then

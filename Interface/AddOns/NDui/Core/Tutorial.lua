@@ -13,7 +13,7 @@ print("|cff70C0F5------------------------")
 -- Tuitorial
 local function ForceDefaultSettings()
 	SetCVar("autoLootDefault", 1)
-	SetCVar("alwaysCompareItems", 0)
+	SetCVar("alwaysCompareItems", DB.isDeveloper and 0 or 1)
 	SetCVar("useCompactPartyFrames", 1)
 	SetCVar("lootUnderMouse", 1)
 	SetCVar("autoSelfCast", 1)
@@ -57,7 +57,7 @@ local function SetupUIScale()
 
 	local scale = GetPerfectScale()
 	local parentScale = UIParent:GetScale()
-	if scale ~= parentScale then
+	if scale ~= parentScale and not InCombatLockdown() then
 		UIParent:SetScale(scale)
 	end
 
