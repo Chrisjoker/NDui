@@ -177,7 +177,7 @@ local function BuildICON(iconSize)
 
 	local frame = CreateFrame("Frame", nil, PetBattleFrameHider)
 	frame:SetSize(iconSize, iconSize)
-	B.CreateSD(frame, 3, 3)
+	B.SetBD(frame)
 
 	frame.Icon = frame:CreateTexture(nil, "ARTWORK")
 	frame.Icon:SetAllPoints()
@@ -193,8 +193,9 @@ local function BuildICON(iconSize)
 
 	frame.Spellname = B.CreateFS(parentFrame, 13, "", false, "TOP", 0, 5)
 	frame.Count = B.CreateFS(parentFrame, iconSize*.55, "", false, "BOTTOMRIGHT", 6, -3)
-	frame.glowFrame = B.CreateBG(frame, 4)
-	frame.glowFrame:SetSize(iconSize+8, iconSize+8)
+
+	frame.glowFrame = B.CreateGlowFrame(frame, iconSize)
+
 	if not NDuiDB["AuraWatch"]["ClickThrough"] then enableTooltip(frame) end
 
 	frame:Hide()
@@ -205,7 +206,7 @@ end
 local function BuildBAR(barWidth, iconSize)
 	local frame = CreateFrame("Frame", nil, PetBattleFrameHider)
 	frame:SetSize(iconSize, iconSize)
-	B.CreateSD(frame, 2, 2)
+	B.SetBD(frame)
 
 	frame.Icon = frame:CreateTexture(nil, "ARTWORK")
 	frame.Icon:SetAllPoints()
@@ -553,7 +554,7 @@ local eventList = {
 }
 
 local function checkPetFlags(sourceFlags, all)
-	if sourceFlags == DB.MyPetFlags or (all and (sourceFlags == DB.PartyPetFlags or sourceFlags == DB.RaidPetFlags)) then
+	if DB:IsMyPet(sourceFlags) or (all and (sourceFlags == DB.PartyPetFlags or sourceFlags == DB.RaidPetFlags)) then
 		return true
 	end
 end

@@ -157,13 +157,12 @@ function A:CreateLumos(self)
 	if not A.ChantLumos then return end
 
 	self.bu = {}
-	local iconSize = self.iconSize
+	local iconSize = NDuiDB["Nameplate"]["PPIconSize"]
 	for i = 1, 5 do
 		local bu = CreateFrame("Frame", nil, self.Health)
 		bu:SetSize(iconSize, iconSize)
 		B.AuraIcon(bu)
-		bu.glowFrame = B.CreateBG(bu, 4)
-		bu.glowFrame:SetSize(iconSize+8, iconSize+8)
+		bu.glowFrame = B.CreateGlowFrame(bu, iconSize)
 
 		local fontParent = CreateFrame("Frame", nil, bu)
 		fontParent:SetAllPoints()

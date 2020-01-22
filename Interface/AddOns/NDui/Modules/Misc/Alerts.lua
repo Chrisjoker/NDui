@@ -45,9 +45,7 @@ function M:SoloInfo_Create()
 	soloInfo = CreateFrame("Frame", nil, UIParent)
 	soloInfo:SetPoint("CENTER", 0, 120)
 	soloInfo:SetSize(150, 70)
-	B.CreateBD(soloInfo)
-	B.CreateSD(soloInfo)
-	B.CreateTex(soloInfo)
+	B.SetBD(soloInfo)
 
 	soloInfo.Text = B.CreateFS(soloInfo, 14, "")
 	soloInfo.Text:SetWordWrap(true)
@@ -68,11 +66,11 @@ end
 function M:SoloInfo()
 	if NDuiDB["Misc"]["SoloInfo"] then
 		self:SoloInfo_Update()
-		B:RegisterEvent("PLAYER_ENTERING_WORLD", self.SoloInfo_Update)
+		B:RegisterEvent("UPDATE_INSTANCE_INFO", self.SoloInfo_Update)
 		B:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_Update)
 	else
 		if soloInfo then soloInfo:Hide() end
-		B:UnregisterEvent("PLAYER_ENTERING_WORLD", self.SoloInfo_Update)
+		B:UnregisterEvent("UPDATE_INSTANCE_INFO", self.SoloInfo_Update)
 		B:UnregisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_Update)
 	end
 end
@@ -177,7 +175,7 @@ local blackList = {
 }
 
 function M:IsAllyPet(sourceFlags)
-	if sourceFlags == DB.MyPetFlags or (not NDuiDB["Misc"]["OwnInterrupt"] and (sourceFlags == DB.PartyPetFlags or sourceFlags == DB.RaidPetFlags)) then
+	if DB:IsMyPet(sourceFlags) or (not NDuiDB["Misc"]["OwnInterrupt"] and (sourceFlags == DB.PartyPetFlags or sourceFlags == DB.RaidPetFlags)) then
 		return true
 	end
 end

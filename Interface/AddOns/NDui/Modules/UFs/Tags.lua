@@ -4,7 +4,7 @@ local B, C, L, DB = unpack(ns)
 local oUF = ns.oUF or oUF
 local format, floor = string.format, math.floor
 local AFK, DND, DEAD, PLAYER_OFFLINE = AFK, DND, DEAD, PLAYER_OFFLINE
-local ALTERNATE_POWER_INDEX = ALTERNATE_POWER_INDEX or 10
+local ALTERNATE_POWER_INDEX = Enum.PowerType.Alternate or 10
 local UnitIsDeadOrGhost, UnitIsConnected, UnitHasVehicleUI, UnitIsTapDenied, UnitIsPlayer = UnitIsDeadOrGhost, UnitIsConnected, UnitHasVehicleUI, UnitIsTapDenied, UnitIsPlayer
 local UnitHealth, UnitHealthMax, UnitPower, UnitPowerType, UnitStagger = UnitHealth, UnitHealthMax, UnitPower, UnitPowerType, UnitStagger
 local UnitClass, UnitReaction, UnitLevel, UnitClassification = UnitClass, UnitReaction, UnitLevel, UnitClassification
@@ -213,11 +213,12 @@ oUF.Tags.Events["pppower"] = "UNIT_POWER_FREQUENT UNIT_MAXPOWER UNIT_DISPLAYPOWE
 oUF.Tags.Methods["altpower"] = function(unit)
 	local cur = UnitPower(unit, ALTERNATE_POWER_INDEX)
 	local max = UnitPowerMax(unit, ALTERNATE_POWER_INDEX)
-	if max > 0 and not UnitIsDeadOrGhost(unit) then
-		return format("%s%%", floor(cur/max*100 + .5))
+	if cur > 0 and max > 0 then
+		local perc = floor(cur/max*100 + .5)
+		return format("%s%%", ColorPercent(perc))
 	end
 end
-oUF.Tags.Events["altpower"] = "UNIT_POWER_UPDATE"
+oUF.Tags.Events["altpower"] = "UNIT_POWER_UPDATE UNIT_MAXPOWER"
 
 -- Monk stagger
 oUF.Tags.Methods["monkstagger"] = function(unit)

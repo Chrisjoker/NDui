@@ -1,5 +1,5 @@
 local _, ns = ...
-local B, C, L, DB, F = unpack(ns)
+local B, C, L, DB = unpack(ns)
 local G = B:RegisterModule("GUI")
 
 local tonumber, tostring, pairs, ipairs, next, select, type = tonumber, tostring, pairs, ipairs, next, select, type
@@ -32,6 +32,7 @@ local defaultSettings = {
 		Scale = 1,
 		BindType = 1,
 		OverrideWA = false,
+		MicroMenu = true,
 	},
 	Bags = {
 		Enable = true,
@@ -46,6 +47,10 @@ local defaultSettings = {
 		DeleteButton = true,
 		FavouriteItems = {},
 		GatherEmpty = false,
+		ShowNewItem = true,
+		SplitCount = 1,
+		SpecialBagsColor = false,
+		iLvlToShow = 1,
 	},
 	Auras = {
 		Reminder = true,
@@ -82,14 +87,16 @@ local defaultSettings = {
 		SimpleMode = false,
 		SimpleModeSortByRole = true,
 		InstanceAuras = true,
+		RaidDebuffScale = 1,
 		SpecRaidPos = false,
 		RaidClassColor = false,
 		HorizonRaid = false,
 		HorizonParty = false,
 		ReverseRaid = false,
-		RaidScale = 1,
+		SimpleRaidScale = 10,
 		RaidWidth = 80,
 		RaidHeight = 32,
+		RaidPowerHeight = 2,
 		RaidHPMode = 1,
 		AurasClickThrough = false,
 		CombatText = true,
@@ -109,9 +116,16 @@ local defaultSettings = {
 		PWOnRight = false,
 		PartyWidth = 100,
 		PartyHeight = 32,
+		PartyPowerHeight = 2,
+		PartyPetFrame = false,
+		PartyPetWidth = 100,
+		PartyPetHeight = 22,
+		PartyPetPowerHeight = 2,
 		HealthColor = 1,
 		BuffIndicatorType = 1,
-		BI_IconSize = 10,
+		BuffIndicatorScale = 1,
+		UFTextScale = 1,
+		PartyAltPower = true,
 
 		PlayerWidth = 245,
 		PlayerHeight = 24,
@@ -152,6 +166,7 @@ local defaultSettings = {
 		Chatbar = true,
 		ChatWidth = 380,
 		ChatHeight = 190,
+		BlockStranger = false,
 	},
 	Map = {
 		Coord = true,
@@ -167,15 +182,15 @@ local defaultSettings = {
 	Nameplate = {
 		Enable = true,
 		maxAuras = 5,
-		AuraSize = 22,
+		AuraSize = 28,
 		FriendlyCC = false,
 		HostileCC = true,
 		TankMode = false,
 		TargetIndicator = 5,
 		InsideView = true,
 		Distance = 42,
-		PlateWidth = 135,
-		PlateHeight = 5,
+		PlateWidth = 190,
+		PlateHeight = 8,
 		CustomUnitColor = true,
 		CustomColor = {r=0, g=.8, b=.3},
 		UnitList = "",
@@ -197,8 +212,8 @@ local defaultSettings = {
 		PPHideOOC = true,
 		NameplateClassPower = false,
 		MaxPowerGlow = true,
-		NameTextSize = 10,
-		HealthTextSize = 12,
+		NameTextSize = 14,
+		HealthTextSize = 16,
 		MinScale = 1,
 		MinAlpha = 1,
 		ColorBorder = false,
@@ -206,13 +221,8 @@ local defaultSettings = {
 	},
 	Skins = {
 		DBM = true,
-		MicroMenu = true,
 		Skada = true,
 		Bigwigs = true,
-		RM = true,
-		RMRune = false,
-		DBMCount = "10",
-		EasyMarking = true,
 		TMW = true,
 		PetBattle = true,
 		WeakAuras = true,
@@ -224,6 +234,15 @@ local defaultSettings = {
 		Details = true,
 		PGFSkin = true,
 		Rematch = true,
+		ToggleDirection = 1,
+		BlizzardSkins = true,
+		SkinAlpha = .5,
+		DefaultBags = false,
+		FlatMode = false,
+		AlertFrames = true,
+		FontOutline = true,
+		Loot = true,
+		Shadow = true,
 	},
 	Tooltip = {
 		CombatHide = false,
@@ -245,6 +264,7 @@ local defaultSettings = {
 		Mail = true,
 		ItemLevel = true,
 		GemNEnchant = true,
+		AzeriteTraits = true,
 		MissingStats = true,
 		HideErrors = true,
 		SoloInfo = true,
@@ -272,6 +292,11 @@ local defaultSettings = {
 		RareAlertInWild = false,
 		ParagonRep = true,
 		UunatAlert = false,
+		InstantDelete = true,
+		RaidTool = true,
+		RMRune = false,
+		DBMCount = "10",
+		EasyMarking = true,
 	},
 	Tutorial = {
 		Complete = false,
@@ -306,6 +331,7 @@ local accountSettings = {
 	SystemInfoType = 1,
 	DisableInfobars = false,
 	PartyWatcherSpells = {},
+	ContactList = {},
 }
 
 -- Initial settings
@@ -331,7 +357,7 @@ local function InitialSettings(source, target, fullClean)
 
 	for i, j in pairs(target) do
 		if source[i] == nil then target[i] = nil end
-		if type(j) == "table" and fullClean then
+		if fullClean and type(j) == "table" then
 			for k, v in pairs(j) do
 				if type(v) ~= "table" and source[i] and source[i][k] == nil then
 					target[i][k] = nil
@@ -352,6 +378,7 @@ loader:SetScript("OnEvent", function(self, _, addon)
 
 	InitialSettings(defaultSettings, NDuiDB, true)
 	InitialSettings(accountSettings, NDuiADB)
+	B:SetupUIScale(true)
 	DB.normTex = textureList[NDuiADB["TexStyle"]]
 
 	self:UnregisterAllEvents()
@@ -364,6 +391,10 @@ end
 
 local function setupCastbar()
 	G:SetupCastbar(guiPage[3])
+end
+
+local function setupRaidFrame()
+	G:SetupRaidFrame(guiPage[4])
 end
 
 local function setupRaidDebuffs()
@@ -395,6 +426,10 @@ local function updateBagSortOrder()
 	SetSortBagsRightToLeft(not NDuiDB["Bags"]["ReverseSort"])
 end
 
+local function updateBagStatus()
+	B:GetModule("Bags"):UpdateAllBags()
+end
+
 local function updateActionbarScale()
 	B:GetModule("Actionbar"):UpdateAllScale()
 end
@@ -421,6 +456,10 @@ end
 
 local function updateChatSize()
 	B:GetModule("Chat"):UpdateChatSize()
+end
+
+local function updateToggleDirection()
+	B:GetModule("Skins"):RefreshToggleDirection()
 end
 
 local function updatePlateInsideView()
@@ -459,16 +498,16 @@ local function updateRaidNameText()
 	B:GetModule("UnitFrames"):UpdateRaidNameText()
 end
 
-local function updatePartySize()
-	B:GetModule("UnitFrames"):ResizePartyFrame()
-end
-
-local function updateRaidSize()
-	B:GetModule("UnitFrames"):ResizeRaidFrame()
-end
-
 local function updatePlayerPlate()
 	B:GetModule("UnitFrames"):ResizePlayerPlate()
+end
+
+local function updateUFTextScale()
+	B:GetModule("UnitFrames"):UpdateTextScale()
+end
+
+local function refreshRaidFrameIcons()
+	B:GetModule("UnitFrames"):RefreshRaidFrameIcons()
 end
 
 local function updateMinimapScale()
@@ -519,6 +558,12 @@ local function updateErrorBlocker()
 	B:GetModule("Misc"):UpdateErrorBlocker()
 end
 
+local function updateSkinAlpha()
+	for _, frame in pairs(C.frames) do
+		B:SetBackdropColor(frame, 0, 0, 0, NDuiDB["Skins"]["SkinAlpha"])
+	end
+end
+
 StaticPopupDialogs["RESET_DETAILS"] = {
 	text = L["Reset Details check"],
 	button1 = YES,
@@ -553,8 +598,7 @@ local tabList = {
 local optionList = { -- type, key, value, name, horizon, doubleline
 	[1] = {
 		{1, "Actionbar", "Enable", "|cff00cc4c"..L["Enable Actionbar"]},
-		{1, "Skins", "MicroMenu", L["Micromenu"]},
-		{1, "Skins", "PetBattle", L["PetBattle Skin"], true},
+		{1, "Actionbar", "MicroMenu", L["Micromenu"], true},
 		{},--blank
 		{1, "Actionbar", "Bar4Fade", L["Bar4 Fade"]},
 		{1, "Actionbar", "Bar5Fade", L["Bar5 Fade"], true},
@@ -573,12 +617,15 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 	[2] = {
 		{1, "Bags", "Enable", "|cff00cc4c"..L["Enable Bags"]},
 		{},--blank
-		{1, "Bags", "ItemFilter", L["Bags ItemFilter"].."*"},
-		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"].."*", true},
-		{1, "Bags", "GatherEmpty", L["Bags GatherEmpty"].."*"},
+		{1, "Bags", "ItemFilter", L["Bags ItemFilter"].."*", nil, nil, updateBagStatus},
+		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"].."*", true, nil, updateBagStatus},
+		{1, "Bags", "GatherEmpty", L["Bags GatherEmpty"].."*", nil, nil, updateBagStatus},
 		{1, "Bags", "ReverseSort", L["Bags ReverseSort"].."*", true, nil, updateBagSortOrder},
-		{1, "Bags", "BagsiLvl", L["Bags Itemlevel"]},
-		{1, "Bags", "DeleteButton", L["Bags DeleteButton"], true},
+		{1, "Bags", "SpecialBagsColor", L["SpecialBagsColor"].."*", nil, nil, updateBagStatus, L["SpecialBagsColorTip"]},
+		{1, "Bags", "BagsiLvl", L["Bags Itemlevel"].."*", true, nil, updateBagStatus},
+		{1, "Bags", "ShowNewItem", L["Bags ShowNewItem"]},
+		{1, "Bags", "DeleteButton", L["Bags DeleteButton"]},
+		{3, "Bags", "iLvlToShow", L["iLvlToShow"].."*", true, {1, 500, 0}, updateBagStatus, L["iLvlToShowTip"]},
 		{},--blank
 		{3, "Bags", "BagsScale", L["Bags Scale"], false, {.5, 1.5, 1}},
 		{3, "Bags", "IconSize", L["Bags IconSize"], true, {30, 42, 0}},
@@ -599,8 +646,9 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "ClassPower", L["UFs ClassPower"]},
 		{1, "UFs", "RuneTimer", L["UFs RuneTimer"], true},
 		{1, "UFs", "PlayerDebuff", L["Player Debuff"]},
-		{1, "UFs", "ToTAuras", L["ToT Debuff"]},
-		{4, "UFs", "HealthColor", L["HealthColor"], true, {L["Default Dark"], L["ClassColorHP"], L["GradientHP"]}},
+		{1, "UFs", "ToTAuras", L["ToT Debuff"], true},
+		{4, "UFs", "HealthColor", L["HealthColor"], nil, {L["Default Dark"], L["ClassColorHP"], L["GradientHP"]}},
+		{3, "UFs", "UFTextScale", L["UFTextScale"], true, {.8, 2, 2}, updateUFTextScale},
 		{},--blank
 		{1, "UFs", "CombatText", "|cff00cc4c"..L["UFs CombatText"]},
 		{1, "UFs", "AutoAttack", L["CombatText AutoAttack"]},
@@ -609,20 +657,21 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "FCTOverHealing", L["CombatText OverHealing"], true},
 	},
 	[4] = {
-		{1, "UFs", "RaidFrame", "|cff00cc4c"..L["UFs RaidFrame"]},
+		{1, "UFs", "RaidFrame", "|cff00cc4c"..L["UFs RaidFrame"], nil, setupRaidFrame, nil, L["RaidFrameTip"]},
 		{},--blank
 		{1, "UFs", "PartyFrame", "|cff00cc4c"..L["UFs PartyFrame"]},
-		{1, "UFs", "HorizonParty", L["Horizon PartyFrame"], true},
-		{1, "UFs", "PartyWatcher", L["UFs PartyWatcher"], nil, setupPartyWatcher},
+		{1, "UFs", "PartyPetFrame", "|cff00cc4c"..L["UFs PartyPetFrame"], true},
+		{1, "UFs", "HorizonParty", L["Horizon PartyFrame"]},
 		{1, "UFs", "PWOnRight", L["PartyWatcherOnRight"], true},
-		{3, "UFs", "PartyWidth", L["PartyFrame Width"].."*(100)", false, {80, 200, 0}, updatePartySize},
-		{3, "UFs", "PartyHeight", L["PartyFrame Height"].."*(32)", true, {25, 60, 0}, updatePartySize},
+		{1, "UFs", "PartyWatcher", L["UFs PartyWatcher"], nil, setupPartyWatcher},
+		{1, "UFs", "PartyAltPower", L["UFs PartyAltPower"], true},
 		{},--blank
-		{1, "UFs", "RaidBuffIndicator", "|cff00cc4c"..L["RaidBuffIndicator"], nil, setupBuffIndicator},
-		{3, "UFs", "BI_IconSize", L["BI_IconSize"], nil, {10, 18, 0}},
-		{4, "UFs", "BuffIndicatorType", L["BuffIndicatorType"], true, {L["BI_Blocks"], L["BI_Icons"], L["BI_Numbers"]}},
+		{1, "UFs", "RaidBuffIndicator", "|cff00cc4c"..L["RaidBuffIndicator"], nil, setupBuffIndicator, nil, L["RaidBuffIndicatorTip"]},
+		{4, "UFs", "BuffIndicatorType", L["BuffIndicatorType"].."*", nil, {L["BI_Blocks"], L["BI_Icons"], L["BI_Numbers"]}, refreshRaidFrameIcons},
+		{3, "UFs", "BuffIndicatorScale", L["BuffIndicatorScale"].."*", true, {1, 2, 1}, refreshRaidFrameIcons},
+		{1, "UFs", "RaidClickSets", "|cff00cc4c"..L["Enable ClickSets"], nil, setupClickCast},
 		{1, "UFs", "InstanceAuras", "|cff00cc4c"..L["Instance Auras"], nil, setupRaidDebuffs},
-		{1, "UFs", "RaidClickSets", "|cff00cc4c"..L["Enable ClickSets"], true, setupClickCast},
+		{3, "UFs", "RaidDebuffScale", L["RaidDebuffScale"].."*", true, {1, 2, 1}, refreshRaidFrameIcons},
 		{1, "UFs", "AurasClickThrough", L["RaidAuras ClickThrough"]},
 		{1, "UFs", "AutoRes", L["UFs AutoRes"], true},
 		{},--blank
@@ -633,12 +682,9 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "SpecRaidPos", L["Spec RaidPos"]},
 		{4, "UFs", "RaidHPMode", L["RaidHPMode"].."*", nil, {L["DisableRaidHP"], L["RaidHPPercent"], L["RaidHPCurrent"], L["RaidHPLost"]}, updateRaidNameText},
 		{3, "UFs", "NumGroups", L["Num Groups"], true, {4, 8, 0}},
-		{3, "UFs", "RaidWidth", L["RaidFrame Width"].."*(80)", false, {60, 200, 0}, updateRaidSize},
-		{3, "UFs", "RaidHeight", L["RaidFrame Height"].."*(32)", true, {25, 60, 0}, updateRaidSize},
 		{},--blank
 		{1, "UFs", "SimpleMode", "|cff00cc4c"..L["Simple RaidFrame"]},
-		{1, "UFs", "SimpleModeSortByRole", L["SimpleMode SortByRole"]},
-		{3, "UFs", "RaidScale", L["SimpleMode Scale"].."*", true, {.8, 1.5, 1}, updateRaidSize},
+		{1, "UFs", "SimpleModeSortByRole", L["SimpleMode SortByRole"], true},
 	},
 	[5] = {
 		{1, "Nameplate", "Enable", "|cff00cc4c"..L["Enable Nameplate"], nil, setupNameplateFilter},
@@ -668,12 +714,12 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{3, "Nameplate", "Distance", L["Nameplate Distance"].."*", true, {20, 100, 0}, updatePlateRange},
 		{3, "Nameplate", "MinScale", L["Nameplate MinScale"].."*", false, {.5, 1, 1}, updatePlateScale},
 		{3, "Nameplate", "MinAlpha", L["Nameplate MinAlpha"].."*", true, {.5, 1, 1}, updatePlateAlpha},
-		{3, "Nameplate", "PlateWidth", L["NP Width"].."*(135)", false, {50, 200, 0}, refreshNameplates},
-		{3, "Nameplate", "PlateHeight", L["NP Height"].."*(5)", true, {5, 20, 0}, refreshNameplates},
-		{3, "Nameplate", "NameTextSize", L["NameTextSize"].."*", false, {8, 16, 0}, refreshNameplates},
-		{3, "Nameplate", "HealthTextSize", L["HealthTextSize"].."*", true, {8, 16, 0}, refreshNameplates},
+		{3, "Nameplate", "PlateWidth", L["NP Width"].."*(190)", false, {50, 250, 0}, refreshNameplates},
+		{3, "Nameplate", "PlateHeight", L["NP Height"].."*(8)", true, {5, 30, 0}, refreshNameplates},
+		{3, "Nameplate", "NameTextSize", L["NameTextSize"].."*(14)", false, {10, 30, 0}, refreshNameplates},
+		{3, "Nameplate", "HealthTextSize", L["HealthTextSize"].."*(16)", true, {10, 30, 0}, refreshNameplates},
 		{3, "Nameplate", "maxAuras", L["Max Auras"], false, {0, 10, 0}},
-		{3, "Nameplate", "AuraSize", L["Auras Size"], true, {18, 40, 0}},
+		{3, "Nameplate", "AuraSize", L["Auras Size"].."(28)", true, {18, 40, 0}},
 	},
 	[6] = {
 		{1, "AuraWatch", "Enable", "|cff00cc4c"..L["Enable AuraWatch"], nil, setupAuraWatch},
@@ -688,14 +734,14 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Nameplate", "NameplateClassPower", L["Nameplate ClassPower"], true},
 		{1, "Nameplate", "PPPowerText", L["PlayerPlate PowerText"]},
 		{1, "Nameplate", "PPHideOOC", L["Fadeout OOC"]},
-		{3, "Nameplate", "PPIconSize", L["PlayerPlate IconSize"], true, {30, 60, 0}},
+		{3, "Nameplate", "PPIconSize", L["PlayerPlate IconSize"], true, {30, 60, 0}, updatePlayerPlate}, -- FIX ME: need to refactor classpower
 		{3, "Nameplate", "PPHeight", L["PlayerPlate HPHeight"].."*", false, {5, 15, 0}, updatePlayerPlate},
 		{3, "Nameplate", "PPPHeight", L["PlayerPlate MPHeight"].."*", true, {5, 15, 0}, updatePlayerPlate},
 		{},--blank
 		{1, "Auras", "ReverseBuffs", L["ReverseBuffs"]},
 		{1, "Auras", "ReverseDebuffs", L["ReverseDebuffs"], true},
-		{3, "Auras", "BuffSize", L["BuffSize"], nil, {24, 40, 0}},
-		{3, "Auras", "DebuffSize", L["DebuffSize"], true, {24, 40, 0}},
+		{3, "Auras", "BuffSize", L["BuffSize"], nil, {24, 50, 0}},
+		{3, "Auras", "DebuffSize", L["DebuffSize"], true, {24, 50, 0}},
 		{3, "Auras", "BuffsPerRow", L["BuffsPerRow"], nil, {10, 20, 0}},
 		{3, "Auras", "DebuffsPerRow", L["DebuffsPerRow"], true, {10, 16, 0}},
 		{},--blank
@@ -704,10 +750,10 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Auras", "Reminder", L["Enable Reminder"].."*", nil, nil, updateReminder},
 	},
 	[7] = {
-		{1, "Skins", "RM", "|cff00cc4c"..L["Raid Manger"]},
-		{1, "Skins", "RMRune", L["Runes Check"].."*"},
-		{1, "Skins", "EasyMarking", L["Easy Mark"].."*"},
-		{2, "Skins", "DBMCount", L["Countdown Sec"].."*", true},
+		{1, "Misc", "RaidTool", "|cff00cc4c"..L["Raid Manger"]},
+		{1, "Misc", "RMRune", L["Runes Check"].."*"},
+		{1, "Misc", "EasyMarking", L["Easy Mark"].."*"},
+		{2, "Misc", "DBMCount", L["Countdown Sec"].."*", true},
 		{},--blank
 		{1, "Misc", "QuestNotifier", "|cff00cc4c"..L["QuestNotifier"].."*", nil, nil, updateQuestNotifier},
 		{1, "Misc", "QuestProgress", L["QuestProgress"].."*"},
@@ -738,9 +784,10 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Chat", "WhisperColor", L["Differ WhipserColor"].."*", true},
 		{1, "Chat", "Freedom", L["Language Filter"]},
 		{1, "Chat", "Chatbar", L["ShowChatbar"], true},
-		{1, "Chat", "ChatItemLevel", "|cff00cc4c"..L["ShowChatItemLevel"]},
+		{1, "Chat", "ChatItemLevel", L["ShowChatItemLevel"]},
 		{},--blank
 		{1, "Chat", "EnableFilter", "|cff00cc4c"..L["Enable Chatfilter"]},
+		{1, "Chat", "BlockStranger", "|cffff0000"..L["BlockStranger"].."*", nil, nil, nil, L["BlockStrangerTip"]},
 		{1, "Chat", "BlockAddonAlert", L["Block Addon Alert"], true},
 		{3, "Chat", "Matches", L["Keyword Match"].."*", false, {1, 3, 0}},
 		{2, "ACCOUNT", "ChatFilterList", L["Filter List"].."*", true, nil, updateFilterList, L["FilterListTip"]},
@@ -763,18 +810,30 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{3, "Map", "MinmapScale", L["Minimap Scale"].."*", true, {1, 2, 1}, updateMinimapScale},
 	},
 	[10] = {
+		{1, "Skins", "FlatMode", L["FlatMode"]},
+		{1, "Skins", "Shadow", L["Shadow"]},
+		{3, "Skins", "SkinAlpha", L["SkinAlpha"].."*", true, {0, 1, 1}, updateSkinAlpha},
+		{1, "Skins", "FontOutline", L["FontOutline"]},
+		{1, "Skins", "PetBattle", L["PetBattle Skin"], true},
+		{1, "Skins", "AlertFrames", L["ReskinAlertFrames"]},
+		{1, "Skins", "DefaultBags", L["DefaultBags"], true, nil, nil, L["DefaultBagsTips"]},
+		{1, "Skins", "Loot", L["Loot"]},
+		{1, "Skins", "BlizzardSkins", "|cff00cc4c"..L["BlizzardSkins"], true, nil, nil, L["BlizzardSkinsTips"]},
+		{},--blank
+
 		{1, "Skins", "BarLine", L["Bar Line"]},
 		{1, "Skins", "InfobarLine", L["Infobar Line"], true},
 		{1, "Skins", "ChatLine", L["Chat Line"]},
 		{1, "Skins", "MenuLine", L["Menu Line"], true},
 		{1, "Skins", "ClassLine", L["ClassColor Line"]},
 		{},--blank
+		{1, "Skins", "Skada", L["Skada Skin"]},
+		{1, "Skins", "Details", L["Details Skin"], nil, resetDetails},
+		{4, "Skins", "ToggleDirection", L["ToggleDirection"].."*", true, {L["LEFT"], L["RIGHT"], L["TOP"], L["BOTTOM"]}, updateToggleDirection},
 		{1, "Skins", "DBM", L["DBM Skin"]},
-		{1, "Skins", "Skada", L["Skada Skin"], true},
-		{1, "Skins", "Bigwigs", L["Bigwigs Skin"]},
-		{1, "Skins", "TMW", L["TMW Skin"], true},
-		{1, "Skins", "WeakAuras", L["WeakAuras Skin"]},
-		{1, "Skins", "Details", L["Details Skin"], true, resetDetails},
+		{1, "Skins", "Bigwigs", L["Bigwigs Skin"], true},
+		{1, "Skins", "TMW", L["TMW Skin"]},
+		{1, "Skins", "WeakAuras", L["WeakAuras Skin"], true},
 		{1, "Skins", "PGFSkin", L["PGF Skin"]},
 		{1, "Skins", "Rematch", L["Rematch Skin"], true},
 	},
@@ -798,7 +857,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 	},
 	[12] = {
 		{1, "Misc", "ItemLevel", "|cff00cc4c"..L["Show ItemLevel"]},
-		{1, "Misc", "GemNEnchant", L["Show GemNEnchant"].."*", true},
+		{1, "Misc", "GemNEnchant", L["Show GemNEnchant"].."*"},
+		{1, "Misc", "AzeriteTraits", L["Show AzeriteTraits"].."*", true},
 		{},--blank
 		{1, "Misc", "MissingStats", L["Show MissingStats"]},
 		{1, "Misc", "ParagonRep", L["ParagonRep"], true},
@@ -813,12 +873,13 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Misc", "Screenshot", L["Auto ScreenShot"].."*", true, nil, updateScreenShot},
 		{1, "Misc", "FasterLoot", L["Faster Loot"].."*", nil, nil, updateFasterLoot},
 		{1, "Misc", "HideErrors", L["Hide Error"].."*", true, nil, updateErrorBlocker},
+		{1, "Misc", "InstantDelete", L["InstantDelete"].."*"},
 	},
 	[13] = {
 		{1, "ACCOUNT", "VersionCheck", L["Version Check"]},
 		{1, "ACCOUNT", "DisableInfobars", L["DisableInfobars"], true},
 		{},--blank
-		{3, "ACCOUNT", "UIScale", L["Setup UIScale"], false, {.4, 1.15, 15}},
+		{3, "ACCOUNT", "UIScale", L["Setup UIScale"], false, {.4, 1.15, 2}},
 		{1, "ACCOUNT", "LockUIScale", "|cff00cc4c"..L["Lock UIScale"], true},
 		{},--blank
 		{4, "ACCOUNT", "TexStyle", L["Texture Style"], false, {L["Highlight"], L["Gradient"], L["Flat"]}},
@@ -958,6 +1019,10 @@ local function CreateOption(i)
 				if callback then callback() end
 			end)
 			s.value:SetText(format("%."..decimal.."f", NDUI_VARIABLE(key, value)))
+			if tooltip then
+				s.title = L["Tips"]
+				B.AddTooltip(s, "ANCHOR_RIGHT", tooltip, "info")
+			end
 		-- Dropdown
 		elseif optType == 4 then
 			local dd = B.CreateDropDown(parent, 200, 28, data)
@@ -1007,6 +1072,10 @@ local function CreateOption(i)
 			offset = offset + 35
 		end
 	end
+
+	local footer = CreateFrame("Frame", nil, parent)
+	footer:SetSize(20, 20)
+	footer:SetPoint("TOPLEFT", 25, -offset)
 end
 
 local bloodlustFilter = {
@@ -1097,6 +1166,10 @@ local function exportData()
 				if name then
 					text = text..":"..spellID..":"..duration
 				end
+			end
+		elseif KEY == "ContactList" then
+			for name, color in pairs(VALUE) do
+				text = text..";ACCOUNT:"..KEY..":"..name..":"..color
 			end
 		end
 	end
@@ -1207,6 +1280,9 @@ local function importData()
 					index = index + 2
 					spellID = options[index]
 				end
+			elseif value == "ContactList" then
+				local name, r, g, b = select(3, strsplit(":", option))
+				NDuiADB["ContactList"][name] = r..":"..g..":"..b
 			end
 		elseif tonumber(arg1) then
 			if value == "DBMCount" then
@@ -1242,14 +1318,14 @@ local function createDataFrame()
 	dataFrame:SetSize(500, 500)
 	dataFrame:SetFrameStrata("DIALOG")
 	B.CreateMF(dataFrame)
-	B.SetBackground(dataFrame)
+	B.SetBD(dataFrame)
 	dataFrame.Header = B.CreateFS(dataFrame, 16, L["Export Header"], true, "TOP", 0, -5)
 
 	local scrollArea = CreateFrame("ScrollFrame", nil, dataFrame, "UIPanelScrollFrameTemplate")
 	scrollArea:SetPoint("TOPLEFT", 10, -30)
 	scrollArea:SetPoint("BOTTOMRIGHT", -28, 40)
-	B.CreateBD(B.CreateBG(scrollArea), .25)
-	if F then F.ReskinScroll(scrollArea.ScrollBar) end
+	B.CreateBDFrame(scrollArea, .25)
+	B.ReskinScroll(scrollArea.ScrollBar)
 
 	local editBox = CreateFrame("EditBox", nil, dataFrame)
 	editBox:SetMultiLine(true)
@@ -1309,9 +1385,9 @@ local function OpenGUI()
 	f:SetSize(800, 600)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("HIGH")
-	f:SetFrameLevel(5)
+	f:SetFrameLevel(10)
 	B.CreateMF(f)
-	B.SetBackground(f)
+	B.SetBD(f)
 	B.CreateFS(f, 18, L["NDui Console"], true, "TOP", 0, -10)
 	B.CreateFS(f, 16, DB.Version.." ("..DB.Support..")", false, "TOP", 0, -30)
 
@@ -1319,14 +1395,10 @@ local function OpenGUI()
 	close:SetPoint("BOTTOMRIGHT", -20, 15)
 	close:SetScript("OnClick", function() f:Hide() end)
 
-	local scaleOld = NDuiADB["UIScale"]
 	local ok = B.CreateButton(f, 80, 20, OKAY)
 	ok:SetPoint("RIGHT", close, "LEFT", -10, 0)
 	ok:SetScript("OnClick", function()
-		local scale = NDuiADB["UIScale"]
-		if not NDuiADB["LockUIScale"] and scale ~= scaleOld then
-			UIParent:SetScale(scale)
-		end
+		B:SetupUIScale()
 		f:Hide()
 		StaticPopup_Show("RELOAD_NDUI")
 	end)
@@ -1337,14 +1409,12 @@ local function OpenGUI()
 		guiPage[i] = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
 		guiPage[i]:SetPoint("TOPLEFT", 160, -50)
 		guiPage[i]:SetSize(610, 500)
-		local bg = B.CreateBG(guiPage[i])
-		B.CreateBD(bg, .3)
+		B.CreateBDFrame(guiPage[i], .3)
 		guiPage[i]:Hide()
 		guiPage[i].child = CreateFrame("Frame", nil, guiPage[i])
 		guiPage[i].child:SetSize(610, 1)
 		guiPage[i]:SetScrollChild(guiPage[i].child)
-		-- AuroraClassic
-		if F then F.ReskinScroll(guiPage[i].ScrollBar) end
+		B.ReskinScroll(guiPage[i].ScrollBar)
 
 		CreateOption(i)
 	end
@@ -1436,6 +1506,5 @@ function G:OnLogin()
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION)
 	end)
 
-	-- AuroraClassic
-	if F then F.Reskin(gui) end
+	if NDuiDB["Skins"]["BlizzardSkins"] then B.Reskin(gui) end
 end

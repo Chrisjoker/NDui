@@ -56,6 +56,8 @@ function M:OnLogin()
 	self:UpdateErrorBlocker()
 	self:TradeTargetInfo()
 	self:TradeTabs()
+	self:MoverQuestTracker()
+	self:CreateRM()
 
 	-- Max camera distancee
 	if tonumber(GetCVar("cameraDistanceMaxZoomFactor")) ~= 2.6 then
@@ -96,8 +98,18 @@ function M:OnLogin()
 
 	-- Instant delete
 	hooksecurefunc(StaticPopupDialogs["DELETE_GOOD_ITEM"], "OnShow", function(self)
-		self.editBox:SetText(DELETE_ITEM_CONFIRM_STRING)
+		if NDuiDB["Misc"]["InstantDelete"] then
+			self.editBox:SetText(DELETE_ITEM_CONFIRM_STRING)
+		end
 	end)
+
+	-- Fix blizz bug in addon list
+	local _AddonTooltip_Update = AddonTooltip_Update
+	function AddonTooltip_Update(owner)
+		if not owner then return end
+		if owner:GetID() < 1 then return end
+		_AddonTooltip_Update(owner)
+	end
 end
 
 -- Get Naked
@@ -129,7 +141,9 @@ function M:ExtendInstance()
 	bu:SetPoint("TOPRIGHT", -35, -5)
 	bu:SetSize(25, 25)
 	B.PixelIcon(bu, GetSpellTexture(80353), true)
-	B.AddTooltip(bu, "ANCHOR_RIGHT", L["Extend Instance"], "system")
+	bu.title = L["Extend Instance"]
+	local tipStr = format(L["Extend Instance Tip"], DB.LeftButton, DB.RightButton)
+	B.AddTooltip(bu, "ANCHOR_RIGHT", tipStr, "system")
 
 	bu:SetScript("OnMouseUp", function(_, btn)
 		for i = 1, GetNumSavedInstances() do
@@ -197,6 +211,21 @@ function M:MoveTicketStatusFrame()
 			self:SetPoint("TOP", UIParent, "TOP", -400, -20)
 		end
 	end)
+end
+
+-- Reanchor ObjectiveTracker
+function M:MoverQuestTracker()
+	local frame = CreateFrame("Frame", "NDuiQuestMover", UIParent)
+	frame:SetSize(240, 50)
+	B.Mover(frame, L["QuestTracker"], "QuestTracker", {"TOPRIGHT", Minimap, "BOTTOMRIGHT", -70, -55})
+
+	local tracker = ObjectiveTrackerFrame
+	tracker:ClearAllPoints()
+	tracker:SetPoint("TOPRIGHT", frame)
+	tracker:SetHeight(GetScreenHeight()*.65)
+	tracker:SetClampedToScreen(false)
+	tracker:SetMovable(true)
+	if tracker:IsMovable() then tracker:SetUserPlaced(true) end
 end
 
 -- Achievement screenshot
@@ -327,8 +356,11 @@ end
 
 -- Archaeology counts
 do
-	local function CalculateArches()
-		print("|cff0080ff【NDui】".."|c0000FF00"..L["Arch Count"]..":")
+	local function CalculateArches(self)
+		GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
+		GameTooltip:ClearLines()
+		GameTooltip:AddLine("|c0000FF00"..L["Arch Count"]..":")
+		GameTooltip:AddLine(" ")
 		local total = 0
 		for i = 1, GetNumArchaeologyRaces() do
 			local numArtifacts = GetNumArtifactsByRace(i)
@@ -339,12 +371,13 @@ do
 			end
 			local name = GetArchaeologyRaceInfo(i)
 			if numArtifacts > 1 then
-				print("     - |cfffed100"..name..": ".."|cff70C0F5"..count)
+				GameTooltip:AddDoubleLine(name..":", DB.InfoColor..count)
 				total = total + count
 			end
 		end
-		print("    -> |c0000ff00"..TOTAL..": ".."|cffff0000"..total)
-		print("|cff70C0F5------------------------")
+		GameTooltip:AddLine(" ")
+		GameTooltip:AddDoubleLine("|c0000ff00"..TOTAL..":", "|cffff0000"..total)
+		GameTooltip:Show()
 	end
 
 	local function AddCalculateIcon()
@@ -352,8 +385,8 @@ do
 		bu:SetPoint("TOPRIGHT", -45, -45)
 		bu:SetSize(35, 35)
 		B.PixelIcon(bu, "Interface\\ICONS\\Ability_Iyyokuk_Calculate", true)
-		B.AddTooltip(bu, "ANCHOR_RIGHT", L["Arch Count"], "system")
-		bu:SetScript("OnMouseUp", CalculateArches)
+		bu:SetScript("OnEnter", CalculateArches)
+		bu:SetScript("OnLeave", B.HideTooltip)
 	end
 
 	local function setupMisc(event, addon)
@@ -369,47 +402,16 @@ do
 	end
 
 	B:RegisterEvent("ADDON_LOADED", setupMisc)
-end
 
--- Show BID and highlight price
-do
-	local function setupMisc(event, addon)
-		if addon == "Blizzard_AuctionUI" then
-			hooksecurefunc("AuctionFrameBrowse_Update", function()
-				local numBatchAuctions = GetNumAuctionItems("list")
-				local offset = FauxScrollFrame_GetOffset(BrowseScrollFrame)
-				local name, buyoutPrice, bidAmount, hasAllInfo
-				for i = 1, NUM_BROWSE_TO_DISPLAY do
-					local index = offset + i + (NUM_AUCTION_ITEMS_PER_PAGE * AuctionFrameBrowse.page)
-					local shouldHide = index > (numBatchAuctions + (NUM_AUCTION_ITEMS_PER_PAGE * AuctionFrameBrowse.page))
-					if not shouldHide then
-						name, _, _, _, _, _, _, _, _, buyoutPrice, bidAmount, _, _, _, _, _, _, hasAllInfo = GetAuctionItemInfo("list", offset + i)
-						if not hasAllInfo then shouldHide = true end
-					end
-					if not shouldHide then
-						local alpha = .5
-						local color = "yellow"
-						local buttonName = "BrowseButton"..i
-						local itemName = _G[buttonName.."Name"]
-						local moneyFrame = _G[buttonName.."MoneyFrame"]
-						local buyoutMoney = _G[buttonName.."BuyoutFrameMoney"]
-						if buyoutPrice >= 5*1e7 then color = "red" end
-						if bidAmount > 0 then
-							name = name.." |cffffff00"..BID.."|r"
-							alpha = 1.0
-						end
-						itemName:SetText(name)
-						moneyFrame:SetAlpha(alpha)
-						SetMoneyFrameColor(buyoutMoney:GetName(), color)
-					end
-				end
-			end)
-
-			B:UnregisterEvent(event, setupMisc)
+	local newTitleString = ARCHAEOLOGY_DIGSITE_PROGRESS_BAR_TITLE.." %s/%s"
+	local function updateArcTitle(_, ...)
+		local numFindsCompleted, totalFinds = ...
+		if ArcheologyDigsiteProgressBar then
+			ArcheologyDigsiteProgressBar.BarTitle:SetFormattedText(newTitleString, numFindsCompleted, totalFinds)
 		end
 	end
-
-	B:RegisterEvent("ADDON_LOADED", setupMisc)
+	B:RegisterEvent("ARCHAEOLOGY_SURVEY_CAST", updateArcTitle)
+	B:RegisterEvent("ARCHAEOLOGY_FIND_COMPLETE", updateArcTitle)
 end
 
 -- Drag AltPowerbar

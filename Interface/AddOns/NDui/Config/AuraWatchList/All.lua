@@ -84,8 +84,12 @@ local list = {
 		{AuraID = 273955, UnitID = "player"},	-- 望远镜视野
 		{AuraID = 267612, UnitID = "player"},	-- 迅击风暴
 		{AuraID = 268887, UnitID = "player"},	-- 迅捷远航
+		{AuraID = 268893, UnitID = "player"},	-- 迅捷远航
 		{AuraID = 268854, UnitID = "player"},	-- 全能远航
+		{AuraID = 268856, UnitID = "player"},	-- 全能远航
+		{AuraID = 268904, UnitID = "player"},	-- 致命远航
 		{AuraID = 268905, UnitID = "player"},	-- 致命远航
+		{AuraID = 268898, UnitID = "player"},	-- 精湛远航
 		{AuraID = 268899, UnitID = "player"},	-- 精湛远航
 		{AuraID = 264957, UnitID = "player"},	-- 急速瞄准镜
 		{AuraID = 264878, UnitID = "player"},	-- 爆击瞄准镜
@@ -180,6 +184,10 @@ local list = {
 		{AuraID = 302731, UnitID = "player", Flash = true},	-- 空间涟漪
 		{AuraID = 302952, UnitID = "player"},	-- 现实流转
 		{AuraID = 295137, UnitID = "player", Flash = true},	-- 源血
+		{AuraID = 311203, UnitID = "player"},	-- 光荣时刻
+		-- 腐蚀
+		{AuraID = 316823, UnitID = "player"},	-- 虚空仪式
+		{AuraID = 318211, UnitID = "player"},	-- 活力涌动
 		-- 炼金石
 		{AuraID = 60233, UnitID = "player"},	-- 敏捷
 		{AuraID = 60229, UnitID = "player"},	-- 力量
@@ -474,6 +482,8 @@ local list = {
 		{AuraID = 273405, UnitID = "player"},	-- 黑暗交易，戈霍恩
 	},
 	["Warning"] = {			-- 目标重要光环组
+	-- 幻象
+		{AuraID = 319643, UnitID = "target", Value = true},	-- 虚空哀嚎，吸收盾
 	-- 5人本
 		{AuraID = 226510, UnitID = "target"},	-- 血池回血
 	-- 8.0副本

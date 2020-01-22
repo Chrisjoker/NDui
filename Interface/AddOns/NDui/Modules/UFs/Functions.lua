@@ -57,11 +57,31 @@ end
 function UF:CreateHealthBar(self)
 	local mystyle = self.mystyle
 	local health = CreateFrame("StatusBar", nil, self)
-	health:SetAllPoints()
+	health:SetPoint("TOPLEFT", self)
+	health:SetPoint("TOPRIGHT", self)
+	local healthHeight
+	if mystyle == "PlayerPlate" then
+		healthHeight = NDuiDB["Nameplate"]["PPHeight"]
+	elseif mystyle == "raid" then
+		if self.isPartyFrame then
+			healthHeight = NDuiDB["UFs"]["PartyHeight"]
+		elseif NDuiDB["UFs"]["SimpleMode"] then
+			local scale = NDuiDB["UFs"]["SimpleRaidScale"]/10
+			healthHeight = 20*scale - 2*scale - C.mult
+		else
+			healthHeight = NDuiDB["UFs"]["RaidHeight"]
+		end
+	elseif mystyle == "partypet" then
+		healthHeight = NDuiDB["UFs"]["PartyPetHeight"]
+	else
+		healthHeight = retVal(self, NDuiDB["UFs"]["PlayerHeight"], NDuiDB["UFs"]["FocusHeight"], NDuiDB["UFs"]["BossHeight"], NDuiDB["UFs"]["PetHeight"])
+	end
+	health:SetHeight(healthHeight)
 	health:SetStatusBarTexture(DB.normTex)
 	health:SetStatusBarColor(.1, .1, .1)
 	health:SetFrameLevel(self:GetFrameLevel() - 2)
-	B.CreateSD(health, 3, 3)
+	health.backdrop = B.CreateBDFrame(health, 0, true) -- don't mess up with libs
+	health.shadow = health.backdrop.Shadow
 	B.SmoothBar(health)
 
 	local bg = health:CreateTexture(nil, "BACKGROUND")
@@ -88,7 +108,7 @@ end
 function UF:CreateHealthText(self)
 	local mystyle = self.mystyle
 	local textFrame = CreateFrame("Frame", nil, self)
-	textFrame:SetAllPoints()
+	textFrame:SetAllPoints(self.Health)
 
 	local name = B.CreateFS(textFrame, retVal(self, 13, 12, 12, 12, NDuiDB["Nameplate"]["NameTextSize"]), "", false, "LEFT", 3, -1)
 	name:SetJustifyH("LEFT")
@@ -115,18 +135,19 @@ function UF:CreateHealthText(self)
 		name:SetWidth(self:GetWidth()*.55)
 	end
 
+	local colorStr = self.Health.colorClass and "" or "[color]"
 	if mystyle == "player" then
-		self:Tag(name, " [color][name]")
+		self:Tag(name, " "..colorStr.."[name]")
 	elseif mystyle == "target" then
-		self:Tag(name, "[fulllevel] [color][name][afkdnd]")
+		self:Tag(name, "[fulllevel] "..colorStr.."[name][afkdnd]")
 	elseif mystyle == "focus" then
-		self:Tag(name, "[color][name][afkdnd]")
+		self:Tag(name, colorStr.."[name][afkdnd]")
 	elseif mystyle == "nameplate" then
 		self:Tag(name, "[nplevel][name]")
 	elseif mystyle == "arena" then
-		self:Tag(name, "[arenaspec] [color][name]")
+		self:Tag(name, "[arenaspec] "..colorStr.."[name]")
 	else
-		self:Tag(name, "[color][name]")
+		self:Tag(name, colorStr.."[name]")
 	end
 
 	local hpval = B.CreateFS(textFrame, retVal(self, 14, 13, 13, 13, NDuiDB["Nameplate"]["HealthTextSize"]), "", false, "RIGHT", -3, -1)
@@ -184,17 +205,32 @@ function UF:CreatePowerBar(self)
 	local mystyle = self.mystyle
 	local power = CreateFrame("StatusBar", nil, self)
 	power:SetStatusBarTexture(DB.normTex)
+	power:SetPoint("BOTTOMLEFT", self)
+	power:SetPoint("BOTTOMRIGHT", self)
+	local powerHeight
 	if mystyle == "PlayerPlate" then
-		power:SetHeight(NDuiDB["Nameplate"]["PPPHeight"])
+		powerHeight = NDuiDB["Nameplate"]["PPPHeight"]
+	elseif mystyle == "raid" then
+		if self.isPartyFrame then
+			powerHeight = NDuiDB["UFs"]["PartyPowerHeight"]
+		elseif NDuiDB["UFs"]["SimpleMode"] then
+			powerHeight = 2*NDuiDB["UFs"]["SimpleRaidScale"]/10
+		else
+			powerHeight = NDuiDB["UFs"]["RaidPowerHeight"]
+		end
+	elseif mystyle == "partypet" then
+		powerHeight = NDuiDB["UFs"]["PartyPetPowerHeight"]
 	else
-		power:SetHeight(retVal(self, NDuiDB["UFs"]["PlayerPowerHeight"], NDuiDB["UFs"]["FocusPowerHeight"], NDuiDB["UFs"]["BossPowerHeight"], NDuiDB["UFs"]["PetPowerHeight"]))
+		powerHeight = retVal(self, NDuiDB["UFs"]["PlayerPowerHeight"], NDuiDB["UFs"]["FocusPowerHeight"], NDuiDB["UFs"]["BossPowerHeight"], NDuiDB["UFs"]["PetPowerHeight"])
 	end
-	power:SetWidth(self:GetWidth())
-	power:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -3)
-	power:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -3)
+	power:SetHeight(powerHeight)
 	power:SetFrameLevel(self:GetFrameLevel() - 2)
-	B.CreateSD(power, 3, 3)
+	power.backdrop = B.CreateBDFrame(power, 0)
 	B.SmoothBar(power)
+
+	if self.Health.shadow then
+		self.Health.shadow:SetPoint("BOTTOMRIGHT", power.backdrop, C.mult+3, -C.mult-3)
+	end
 
 	local bg = power:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
@@ -221,6 +257,29 @@ function UF:CreatePowerText(self)
 
 	local ppval = B.CreateFS(textFrame, retVal(self, 13, 12, 12, 12), "", false, "RIGHT", -3, 2)
 	self:Tag(ppval, "[color][power]")
+	self.powerText = ppval
+end
+
+local textScaleFrames = {
+	["player"] = true,
+	["target"] = true,
+	["focus"] = true,
+	["pet"] = true,
+	["tot"] = true,
+	["focustarget"] = true,
+	["boss"] = true,
+	["arena"] = true,
+}
+function UF:UpdateTextScale()
+	local scale = NDuiDB["UFs"]["UFTextScale"]
+	for _, frame in pairs(oUF.objects) do
+		local style = frame.mystyle
+		if style and textScaleFrames[style] then
+			frame.nameText:SetScale(scale)
+			frame.healthValue:SetScale(scale)
+			if frame.powerText then frame.powerText:SetScale(scale) end
+		end
+	end
 end
 
 function UF:CreatePortrait(self)
@@ -308,13 +367,13 @@ function UF:CreateRaidMark(self)
 	else
 		ri:SetPoint("TOPRIGHT", self, "TOPRIGHT", -30, 10)
 	end
-	local size = retVal(self, 14, 13, 12, 12, 20)
+	local size = retVal(self, 14, 13, 12, 12, 28)
 	ri:SetSize(size, size)
 	self.RaidTargetIndicator = ri
 end
 
 local function createBarMover(bar, text, value, anchor)
-	local mover = B.Mover(bar, text, value, anchor, bar:GetHeight()+bar:GetWidth()+5, bar:GetHeight()+5)
+	local mover = B.Mover(bar, text, value, anchor, bar:GetHeight()+bar:GetWidth()+3, bar:GetHeight()+3)
 	bar:ClearAllPoints()
 	bar:SetPoint("RIGHT", mover)
 	bar.mover = mover
@@ -347,17 +406,17 @@ function UF:CreateCastBar(self)
 		cb:SetHeight(self:GetHeight())
 	end
 
-	local timer = B.CreateFS(cb, retVal(self, 12, 12, 12, 12, 10), "", false, "RIGHT", -2, 0)
-	local name = B.CreateFS(cb, retVal(self, 12, 12, 12, 12, 10), "", false, "LEFT", 2, 0)
+	local timer = B.CreateFS(cb, retVal(self, 12, 12, 12, 12, NDuiDB["Nameplate"]["NameTextSize"]), "11", false, "RIGHT", -2, 0)
+	local name = B.CreateFS(cb, retVal(self, 12, 12, 12, 12, NDuiDB["Nameplate"]["NameTextSize"]), "11", false, "LEFT", 2, 0)
 	name:SetPoint("RIGHT", timer, "LEFT", -5, 0)
 	name:SetJustifyH("LEFT")
 
 	if mystyle ~= "boss" and mystyle ~= "arena" then
 		cb.Icon = cb:CreateTexture(nil, "ARTWORK")
 		cb.Icon:SetSize(cb:GetHeight(), cb:GetHeight())
-		cb.Icon:SetPoint("BOTTOMRIGHT", cb, "BOTTOMLEFT", -5, 0)
+		cb.Icon:SetPoint("BOTTOMRIGHT", cb, "BOTTOMLEFT", -3, 0)
 		cb.Icon:SetTexCoord(unpack(DB.TexCoord))
-		B.CreateSD(cb.Icon, 3, 3)
+		B.SetBD(cb.Icon)
 	end
 
 	if mystyle == "player" then
@@ -380,12 +439,13 @@ function UF:CreateCastBar(self)
 
 		local shield = cb:CreateTexture(nil, "OVERLAY")
 		shield:SetAtlas("nameplates-InterruptShield")
-		shield:SetSize(14, 14)
+		shield:SetSize(18, 18)
 		shield:SetPoint("CENTER", 0, -5)
 		cb.Shield = shield
 
 		local iconSize = self:GetHeight()*2 + 5
 		cb.Icon:SetSize(iconSize, iconSize)
+		cb.Icon:SetPoint("BOTTOMRIGHT", cb, "BOTTOMLEFT", -5, 0)
 		cb.timeToHold = .5
 	end
 
@@ -422,10 +482,7 @@ local function reskinTimerBar(bar)
 		bar:SetStatusBarTexture(DB.normTex)
 	end
 
-	local bg = B.CreateBG(bar)
-	B.CreateBD(bg)
-	B.CreateSD(bg)
-	B.CreateTex(bg)
+	B.SetBD(bar)
 end
 
 function UF:ReskinMirrorBars()
@@ -462,10 +519,11 @@ function UF.PostCreateIcon(element, button)
 	parentFrame:SetFrameLevel(button:GetFrameLevel() + 3)
 	button.count = B.CreateFS(parentFrame, fontSize, "", false, "BOTTOMRIGHT", 6, -3)
 	button.cd:SetReverse(true)
-
-	button.icon:SetTexCoord(unpack(DB.TexCoord))
-	button.icon:SetDrawLayer("ARTWORK")
-	B.CreateSD(button, 2, 2)
+	local needShadow = true
+	if element.__owner.mystyle == "raid" and not NDuiDB["UFs"]["RaidBuffIndicator"] then
+		needShadow = false
+	end
+	button.iconbg = B.ReskinIcon(button.icon, needShadow)
 
 	button.HL = button:CreateTexture(nil, "HIGHLIGHT")
 	button.HL:SetColorTexture(1, 1, 1, .25)
@@ -485,7 +543,7 @@ local filteredStyle = {
 }
 
 function UF.PostUpdateIcon(element, _, button, _, _, duration, expiration, debuffType)
-	if duration then button.Shadow:Show() end
+	if duration then button.iconbg:Show() end
 
 	local style = element.__owner.mystyle
 	if style == "nameplate" then
@@ -501,12 +559,12 @@ function UF.PostUpdateIcon(element, _, button, _, _, duration, expiration, debuf
 	end
 
 	if style == "raid" and NDuiDB["UFs"]["RaidBuffIndicator"] then
-		button.Shadow:SetBackdropBorderColor(1, 0, 0)
+		button.iconbg:SetBackdropBorderColor(1, 0, 0)
 	elseif element.showDebuffType and button.isDebuff then
 		local color = oUF.colors.debuff[debuffType] or oUF.colors.debuff.none
-		button.Shadow:SetBackdropBorderColor(color[1], color[2], color[3])
+		button.iconbg:SetBackdropBorderColor(color[1], color[2], color[3])
 	else
-		button.Shadow:SetBackdropBorderColor(0, 0, 0)
+		button.iconbg:SetBackdropBorderColor(0, 0, 0)
 	end
 
 	if element.disableCooldown then
@@ -537,8 +595,8 @@ local function bolsterPostUpdate(element)
 end
 
 function UF.PostUpdateGapIcon(_, _, icon)
-	if icon.Shadow and icon.Shadow:IsShown() then
-		icon.Shadow:Hide()
+	if icon.iconbg and icon.iconbg:IsShown() then
+		icon.iconbg:Hide()
 	end
 end
 
@@ -554,7 +612,7 @@ function UF.CustomFilter(element, unit, button, name, _, _, _, _, _, caster, isS
 		if NDuiDB["UFs"]["RaidBuffIndicator"] then
 			return C.RaidBuffs["ALL"][spellID] or NDuiADB["RaidAuraWatch"][spellID]
 		else
-			return (button.isPlayer or caster == "pet") and C.RaidBuffs[DB.MyClass][spellID] or C.RaidBuffs["ALL"][spellID] or C.RaidBuffs["WARNING"][spellID]
+			return (button.isPlayer or caster == "pet") and NDuiADB["CornerBuffs"][DB.MyClass][spellID] or C.RaidBuffs["ALL"][spellID] or C.RaidBuffs["WARNING"][spellID]
 		end
 	elseif style == "nameplate" or style == "boss" or style == "arena" then
 		if NDuiADB["NameplateFilter"][2][spellID] or C.BlackList[spellID] then
@@ -582,7 +640,7 @@ function UF:CreateAuras(self)
 	bu.gap = true
 	bu.initialAnchor = "TOPLEFT"
 	bu["growth-y"] = "DOWN"
-	bu.spacing = 5
+	bu.spacing = 3
 	if mystyle == "target" then
 		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -10)
 		bu.numBuffs = 20
@@ -602,11 +660,11 @@ function UF:CreateAuras(self)
 		if NDuiDB["UFs"]["RaidBuffIndicator"] then
 			bu.initialAnchor = "LEFT"
 			bu:SetPoint("LEFT", self, 15, 0)
-			bu.size = 18*NDuiDB["UFs"]["RaidScale"]
+			bu.size = 18*NDuiDB["UFs"]["SimpleRaidScale"]/10
 			bu.numTotal = 1
 			bu.disableCooldown = true
 		else
-			bu:SetPoint("BOTTOMLEFT", self, 2, -1)
+			bu:SetPoint("BOTTOMLEFT", self.Health)
 			bu.numTotal = NDuiDB["UFs"]["SimpleMode"] and not self.isPartyFrame and 0 or 6
 			bu.iconsPerRow = 6
 			bu.spacing = 2
@@ -619,10 +677,9 @@ function UF:CreateAuras(self)
 		if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
 			bu:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 20 + _G.oUF_ClassPowerBar:GetHeight())
 		else
-			bu:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 20)
+			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
 		end
 		bu.numTotal = NDuiDB["Nameplate"]["maxAuras"]
-		bu.spacing = 3
 		bu.size = NDuiDB["Nameplate"]["AuraSize"]
 		bu.showDebuffType = NDuiDB["Nameplate"]["ColorBorder"]
 		bu.gap = false
@@ -654,7 +711,7 @@ function UF:CreateBuffs(self)
 	bu["growth-x"] = "RIGHT"
 	bu["growth-y"] = "UP"
 	bu.num = 6
-	bu.spacing = 5
+	bu.spacing = 3
 	bu.iconsPerRow = 6
 	bu.onlyShowPlayer = false
 
@@ -673,7 +730,7 @@ end
 function UF:CreateDebuffs(self)
 	local mystyle = self.mystyle
 	local bu = CreateFrame("Frame", nil, self)
-	bu.spacing = 5
+	bu.spacing = 3
 	bu.initialAnchor = "TOPRIGHT"
 	bu["growth-x"] = "LEFT"
 	bu["growth-y"] = "DOWN"
@@ -708,12 +765,10 @@ function UF.PostUpdateClassPower(element, cur, max, diff, powerType)
 	if not cur or cur == 0 then
 		for i = 1, 6 do
 			element[i].bg:Hide()
-			element[i].bg.Shadow:Hide()
 		end
 	else
 		for i = 1, max do
 			element[i].bg:Show()
-			element[i].bg.Shadow:Show()
 		end
 	end
 
@@ -723,7 +778,6 @@ function UF.PostUpdateClassPower(element, cur, max, diff, powerType)
 		end
 		for i = max + 1, 6 do
 			element[i].bg:Hide()
-			element[i].bg.Shadow:Hide()
 		end
 	end
 
@@ -777,7 +831,7 @@ end
 
 function UF:CreateClassPower(self)
 	if self.mystyle == "PlayerPlate" then
-		barWidth, barHeight = self:GetWidth(), self:GetHeight()
+		barWidth, barHeight = self:GetWidth(), self.Health:GetHeight()
 		C.UFs.BarPoint = {"BOTTOMLEFT", self, "TOPLEFT", 0, 3}
 	end
 
@@ -792,6 +846,7 @@ function UF:CreateClassPower(self)
 		bars[i]:SetWidth((barWidth - 5*margin) / 6)
 		bars[i]:SetStatusBarTexture(DB.normTex)
 		bars[i]:SetFrameLevel(self:GetFrameLevel() + 5)
+		B.CreateBDFrame(bars[i], 0, true)
 		if i == 1 then
 			bars[i]:SetPoint("BOTTOMLEFT")
 		else
@@ -802,7 +857,6 @@ function UF:CreateClassPower(self)
 		bars[i].bg:SetAllPoints(bars[i])
 		bars[i].bg:SetTexture(DB.normTex)
 		bars[i].bg.multiplier = .25
-		B.CreateSD(bars[i].bg, 3, 3)
 
 		if DB.MyClass == "DEATHKNIGHT" and NDuiDB["UFs"]["RuneTimer"] then
 			bars[i].timer = B.CreateFS(bars[i], 13, "")
@@ -834,7 +888,7 @@ function UF:StaggerBar(self)
 	stagger:SetPoint(unpack(C.UFs.BarPoint))
 	stagger:SetStatusBarTexture(DB.normTex)
 	stagger:SetFrameLevel(self:GetFrameLevel() + 5)
-	B.CreateSD(stagger, 3, 3)
+	B.CreateBDFrame(stagger, 0, true)
 
 	local bg = stagger:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
@@ -868,8 +922,7 @@ function UF:CreateAltPower(self)
 	bar:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -3)
 	bar:SetPoint("TOPRIGHT", self.Power, "BOTTOMRIGHT", 0, -3)
 	bar:SetHeight(2)
-	B.CreateBD(bar, .5)
-	B.CreateSD(bar)
+	B.CreateBDFrame(bar, 0, true)
 
 	local text = B.CreateFS(bar, 14, "")
 	text:SetJustifyH("CENTER")
@@ -939,6 +992,7 @@ function UF:CreatePrediction(self)
 	ohg:SetWidth(15)
 	ohg:SetTexture("Interface\\RaidFrame\\Absorb-Overabsorb")
 	ohg:SetBlendMode("ADD")
+	ohg:SetAlpha(.5)
 	ohg:SetPoint("TOPRIGHT", self.Health, "TOPLEFT", 5, 2)
 	ohg:SetPoint("BOTTOMRIGHT", self.Health, "BOTTOMLEFT", 5, -2)
 
@@ -973,7 +1027,7 @@ function UF:CreateAddPower(self)
 	bar:SetSize(150, 4)
 	bar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -10)
 	bar:SetStatusBarTexture(DB.normTex)
-	B.CreateSD(bar, 3, 3)
+	B.CreateBDFrame(bar, 0, true)
 	bar.colorPower = true
 
 	local bg = bar:CreateTexture(nil, "BACKGROUND")
@@ -1015,7 +1069,7 @@ function UF:CreateSwing(self)
 	if NDuiDB["UFs"]["SwingTimer"] then
 		bar.Text = B.CreateFS(bar, 12, "")
 		bar.TextMH = B.CreateFS(main, 12, "")
-		bar.TextOH = B.CreateFS(off, 12, "", false, "CENTER", 1, -3)
+		bar.TextOH = B.CreateFS(off, 12, "", false, "CENTER", 1, -5)
 	end
 
 	self.Swing = bar
@@ -1039,9 +1093,8 @@ function UF:CreateQuakeTimer(self)
 
 	local icon = bar:CreateTexture(nil, "ARTWORK")
 	icon:SetSize(bar:GetHeight(), bar:GetHeight())
-	icon:SetPoint("RIGHT", bar, "LEFT", -5, 0)
-	icon:SetTexCoord(unpack(DB.TexCoord))
-	B.CreateSD(icon, 3, 3)
+	icon:SetPoint("RIGHT", bar, "LEFT", -3, 0)
+	B.ReskinIcon(icon, true)
 	bar.Icon = icon
 
 	self.QuakeTimer = bar
@@ -1083,49 +1136,4 @@ function UF:CreatePVPClassify(self)
 	bu:SetPoint("LEFT", self, "RIGHT", 5, -2)
 
 	self.PvPClassificationIndicator = bu
-end
-
-function UF:InterruptIndicator(self)
-	if not NDuiDB["UFs"]["PartyWatcher"] then return end
-
-	local horizon = NDuiDB["UFs"]["HorizonParty"]
-	local otherSide = NDuiDB["UFs"]["PWOnRight"]
-	local relF = horizon and "BOTTOMLEFT" or "TOPRIGHT"
-	local relT = "TOPLEFT"
-	local xOffset = horizon and 0 or -5
-	local yOffset = horizon and 5 or 0
-	local margin = horizon and 2 or -2
-	if otherSide then
-		relF = "TOPLEFT"
-		relT = horizon and "BOTTOMLEFT" or "TOPRIGHT"
-		xOffset = horizon and 0 or 5
-		yOffset = horizon and -(self.Power:GetHeight()+8) or 0
-		margin = 2
-	end
-	local rel1 = not horizon and not otherSide and "RIGHT" or "LEFT"
-	local rel2 = not horizon and not otherSide and "LEFT" or "RIGHT"
-	local buttons = {}
-	local maxIcons = 4
-	local iconSize = horizon and (self:GetWidth()-(maxIcons-1)*abs(margin))/maxIcons or (self:GetHeight()+self.Power:GetHeight()+3)
-	if iconSize > 32 then iconSize = 32 end
-
-	for i = 1, maxIcons do
-		local bu = CreateFrame("Frame", nil, self)
-		bu:SetSize(iconSize, iconSize)
-		B.AuraIcon(bu)
-		bu.CD:SetReverse(false)
-		if i == 1 then
-			bu:SetPoint(relF, self, relT, xOffset, yOffset)
-		else
-			bu:SetPoint(rel1, buttons[i-1], rel2, margin, 0)
-		end
-		bu:Hide()
-
-		buttons[i] = bu
-	end
-
-	buttons.__max = maxIcons
-	buttons.PartySpells = NDuiADB["PartyWatcherSpells"]
-	buttons.TalentCDFix = C.TalentCDFix
-	self.PartyWatcher = buttons
 end

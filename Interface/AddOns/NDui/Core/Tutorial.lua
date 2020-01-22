@@ -2,7 +2,6 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 local module = B:RegisterModule("Settings")
 local pairs, wipe = pairs, table.wipe
-local min, max = math.min, math.max
 
 -- Addon Info
 print("|cff0080ff< NDui >|cff70C0F5----------------")
@@ -13,7 +12,7 @@ print("|cff70C0F5------------------------")
 -- Tuitorial
 local function ForceDefaultSettings()
 	SetCVar("autoLootDefault", 1)
-	SetCVar("alwaysCompareItems", DB.isDeveloper and 0 or 1)
+	SetCVar("alwaysCompareItems", 1)
 	SetCVar("useCompactPartyFrames", 1)
 	SetCVar("lootUnderMouse", 1)
 	SetCVar("autoSelfCast", 1)
@@ -32,38 +31,12 @@ local function ForceDefaultSettings()
 end
 
 local function ForceRaidFrame()
-	if not CompactUnitFrameProfiles.selectedProfile then return end
+	if not CompactUnitFrameProfiles then return end
 	SetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, "useClassColors", true)
 	SetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, "displayPowerBar", true)
 	SetRaidProfileOption(CompactUnitFrameProfiles.selectedProfile, "displayBorder", false)
 	CompactUnitFrameProfiles_ApplyCurrentSettings()
 	CompactUnitFrameProfiles_UpdateCurrentPanel()
-end
-
-local function GetPerfectScale()
-	local scale = NDuiADB["UIScale"]
-	local bestScale = max(.4, min(1.15, 768 / DB.ScreenHeight))
-	local pixelScale = 768 / DB.ScreenHeight
-	if NDuiADB["LockUIScale"] then scale = bestScale end
-	C.mult = (bestScale / scale) - ((bestScale - pixelScale) / scale)
-
-	return scale
-end
-
-local isScaling = false
-local function SetupUIScale()
-	if isScaling then return end
-	isScaling = true
-
-	local scale = GetPerfectScale()
-	local parentScale = UIParent:GetScale()
-	if scale ~= parentScale and not InCombatLockdown() then
-		UIParent:SetScale(scale)
-	end
-
-	NDuiADB["UIScale"] = scale
-
-	isScaling = false
 end
 
 local function ForceChatSettings()
@@ -297,9 +270,7 @@ local function YesTutor()
 	tutor:SetFrameStrata("HIGH")
 	tutor:SetScale(1.2)
 	B.CreateMF(tutor)
-	B.CreateBD(tutor)
-	B.CreateSD(tutor)
-	B.CreateTex(tutor)
+	B.SetBD(tutor)
 	B.CreateFS(tutor, 30, "NDui", true, "TOPLEFT", 10, 25)
 	local ll = CreateFrame("Frame", nil, tutor)
 	ll:SetPoint("TOP", -40, -32)
@@ -349,7 +320,7 @@ local function YesTutor()
 			UIErrorsFrame:AddMessage(DB.InfoColor..L["Chat Settings Check"])
 		elseif currentPage == 3 then
 			NDuiADB["LockUIScale"] = true
-			SetupUIScale()
+			B:SetupUIScale()
 			UIErrorsFrame:AddMessage(DB.InfoColor..L["UIScale Check"])
 		elseif currentPage == 4 then
 			NDuiADB["DBMRequest"] = true
@@ -382,9 +353,7 @@ local function HelloWorld()
 	welcome:SetScale(1.2)
 	welcome:SetFrameStrata("HIGH")
 	B.CreateMF(welcome)
-	B.CreateBD(welcome)
-	B.CreateSD(welcome)
-	B.CreateTex(welcome)
+	B.SetBD(welcome)
 	B.CreateFS(welcome, 30, "NDui", true, "TOPLEFT", 10, 25)
 	B.CreateFS(welcome, 14, DB.Version, true, "TOPLEFT", 90, 13)
 	B.CreateFS(welcome, 16, L["Help Title"], true, "TOP", 0, -10)
@@ -435,10 +404,6 @@ function module:OnLogin()
 	-- Hide options
 	B.HideOption(Advanced_UseUIScale)
 	B.HideOption(Advanced_UIScaleSlider)
-
-	-- Update UIScale
-	SetupUIScale()
-	B:RegisterEvent("UI_SCALE_CHANGED", SetupUIScale)
 
 	-- Tutorial and settings
 	ForceAddonSkins()

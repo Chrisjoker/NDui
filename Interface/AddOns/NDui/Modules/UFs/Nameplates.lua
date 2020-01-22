@@ -219,14 +219,16 @@ function UF.UpdateColor(element, unit)
 
 	if isCustomUnit or (not NDuiDB["Nameplate"]["TankMode"] and DB.Role ~= "Tank") then
 		if status and status == 3 then
-			element.Shadow:SetBackdropBorderColor(1, 0, 0)
+			self.ThreatIndicator:SetBackdropBorderColor(1, 0, 0)
+			self.ThreatIndicator:Show()
 		elseif status and (status == 2 or status == 1) then
-			element.Shadow:SetBackdropBorderColor(1, 1, 0)
+			self.ThreatIndicator:SetBackdropBorderColor(1, 1, 0)
+			self.ThreatIndicator:Show()
 		else
-			element.Shadow:SetBackdropBorderColor(0, 0, 0)
+			self.ThreatIndicator:Hide()
 		end
 	else
-		element.Shadow:SetBackdropBorderColor(0, 0, 0)
+		self.ThreatIndicator:Hide()
 	end
 end
 
@@ -238,8 +240,11 @@ function UF:UpdateThreatColor(_, unit)
 end
 
 function UF:CreateThreatColor(self)
-	local frame = CreateFrame("Frame", nil, self)
-	self.ThreatIndicator = frame
+	local threatIndicator = B.CreateSD(self, 3, true)
+	threatIndicator:SetOutside(self.Health.backdrop, 3, 3)
+	threatIndicator:Hide()
+
+	self.ThreatIndicator = threatIndicator
 	self.ThreatIndicator.Override = UF.UpdateThreatColor
 end
 
@@ -293,20 +298,18 @@ function UF:AddTargetIndicator(self)
 	frame:SetAlpha(0)
 
 	frame.TopArrow = frame:CreateTexture(nil, "BACKGROUND", nil, -5)
-	frame.TopArrow:SetSize(40, 40)
+	frame.TopArrow:SetSize(50, 50)
 	frame.TopArrow:SetTexture(DB.arrowTex)
-	frame.TopArrow:SetPoint("BOTTOM", frame, "TOP", 0, 10)
+	frame.TopArrow:SetPoint("BOTTOM", frame, "TOP", 0, 20)
 
 	frame.RightArrow = frame:CreateTexture(nil, "BACKGROUND", nil, -5)
-	frame.RightArrow:SetSize(40, 40)
+	frame.RightArrow:SetSize(50, 50)
 	frame.RightArrow:SetTexture(DB.arrowTex)
 	frame.RightArrow:SetPoint("LEFT", frame, "RIGHT", 3, 0)
 	frame.RightArrow:SetRotation(rad(-90))
 
-	frame.Glow = CreateFrame("Frame", nil, frame)
-	frame.Glow:SetPoint("TOPLEFT", frame, -6, 6)
-	frame.Glow:SetPoint("BOTTOMRIGHT", frame, 6, -6)
-	frame.Glow:SetBackdrop({edgeFile = DB.glowTex, edgeSize = 5})
+	frame.Glow = B.CreateSD(frame, 4, true)
+	frame.Glow:SetOutside(self.Health.backdrop, 5, 5)
 	frame.Glow:SetBackdropBorderColor(1, 1, 1)
 	frame.Glow:SetFrameLevel(0)
 
@@ -356,7 +359,7 @@ function UF:UpdateQuestUnit(_, unit)
 					local questText = questLine:GetText()
 					if questLine and questText then
 						local current, goal = strmatch(questText, "(%d+)/(%d+)")
-						local progress = strmatch(questText, "([%d%.]+)%%")
+						local progress = strmatch(questText, "(%d+)%%")
 						if current and goal then
 							current = tonumber(current)
 							goal = tonumber(goal)
@@ -401,10 +404,10 @@ function UF:AddQuestIcon(self)
 
 	local qicon = self:CreateTexture(nil, "OVERLAY", nil, 2)
 	qicon:SetPoint("LEFT", self, "RIGHT", -1, 0)
-	qicon:SetSize(20, 20)
+	qicon:SetSize(28, 28)
 	qicon:SetAtlas(DB.questTex)
 	qicon:Hide()
-	local count = B.CreateFS(self, 12, "", nil, "LEFT", 0, 0)
+	local count = B.CreateFS(self, 16, "", nil, "LEFT", 0, 0)
 	count:SetPoint("LEFT", qicon, "RIGHT", -4, 0)
 	count:SetTextColor(.6, .8, 1)
 
@@ -417,7 +420,7 @@ end
 function UF:AddDungeonProgress(self)
 	if not NDuiDB["Nameplate"]["AKSProgress"] then return end
 
-	self.progressText = B.CreateFS(self, 12, "", false, "LEFT", 0, 0)
+	self.progressText = B.CreateFS(self, 16, "", false, "LEFT", 0, 0)
 	self.progressText:SetPoint("LEFT", self, "RIGHT", 5, 0)
 end
 
@@ -475,8 +478,8 @@ function UF:AddCreatureIcon(self)
 
 	local icon = iconFrame:CreateTexture(nil, "ARTWORK")
 	icon:SetAtlas("VignetteKill")
-	icon:SetPoint("BOTTOMLEFT", self, "LEFT", 0, -4)
-	icon:SetSize(18, 18)
+	icon:SetPoint("BOTTOMLEFT", self, "LEFT", 0, -6)
+	icon:SetSize(24, 24)
 	icon:Hide()
 
 	self.creatureIcon = icon
@@ -591,7 +594,7 @@ function UF:AddFollowerXP(self)
 	bar:SetSize(NDuiDB["Nameplate"]["PlateWidth"]*.75, NDuiDB["Nameplate"]["PlateHeight"])
 	bar:SetPoint("TOP", self.Castbar, "BOTTOM", 0, -5)
 	B.CreateSB(bar, false, 0, .7, 1)
-	bar.progressText = B.CreateFS(bar, 9)
+	bar.progressText = B.CreateFS(bar, 12)
 
 	self.NazjatarFollowerXP = bar
 end
@@ -623,13 +626,15 @@ function UF:CreatePlates()
 	self.mystyle = "nameplate"
 	self:SetSize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"])
 	self:SetPoint("CENTER")
+	self:SetScale(NDuiADB["UIScale"])
 
 	local health = CreateFrame("StatusBar", nil, self)
 	health:SetAllPoints()
-	B.CreateSB(health)
+	health:SetStatusBarTexture(DB.normTex)
+	health.backdrop = B.CreateBDFrame(health, nil, true) -- don't mess up with libs
 	B.SmoothBar(health)
+
 	self.Health = health
-	self.Health.frequentUpdates = true
 	self.Health.UpdateColor = UF.UpdateColor
 
 	UF:CreateHealthText(self)
@@ -640,7 +645,7 @@ function UF:CreatePlates()
 	UF:CreatePVPClassify(self)
 	UF:CreateThreatColor(self)
 
-	self.powerText = B.CreateFS(self, 15)
+	self.powerText = B.CreateFS(self, 22)
 	self.powerText:ClearAllPoints()
 	self.powerText:SetPoint("TOP", self.Castbar, "BOTTOM", 0, -4)
 	self:Tag(self.powerText, "[nppp]")
@@ -695,6 +700,8 @@ function UF:RefreshAllPlates()
 	for nameplate in pairs(platesList) do
 		nameplate:SetSize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"])
 		nameplate.nameText:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.Castbar.Time:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.Castbar.Text:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
 		nameplate.healthValue:SetFont(DB.Font[1], NDuiDB["Nameplate"]["HealthTextSize"], DB.Font[3])
 		nameplate.healthValue:UpdateTag()
 		nameplate.Auras.showDebuffType = NDuiDB["Nameplate"]["ColorBorder"]
@@ -748,26 +755,34 @@ end
 function UF:ResizePlayerPlate()
 	local plate = _G.oUF_PlayerPlate
 	if plate then
-		plate:SetHeight(NDuiDB["Nameplate"]["PPHeight"])
-		plate.Power:SetHeight(NDuiDB["Nameplate"]["PPPHeight"])
+		local iconSize, margin = NDuiDB["Nameplate"]["PPIconSize"], 2
+		local pHeight, ppHeight = NDuiDB["Nameplate"]["PPHeight"], NDuiDB["Nameplate"]["PPPHeight"]
+		plate:SetSize(iconSize*5 + margin*4, pHeight + ppHeight + C.mult)
+		plate.Health:SetHeight(pHeight)
+		plate.Power:SetHeight(ppHeight)
 		local bars = plate.ClassPower or plate.Runes
 		if bars then
 			for i = 1, 6 do
-				bars[i]:SetHeight(NDuiDB["Nameplate"]["PPHeight"])
+				bars[i]:SetHeight(pHeight)
 			end
 		end
 		if plate.Stagger then
-			plate.Stagger:SetHeight(NDuiDB["Nameplate"]["PPHeight"])
+			plate.Stagger:SetHeight(pHeight)
+		end
+		if plate.bu then
+			for i = 1, 5 do
+				plate.bu[i]:SetSize(NDuiDB["Nameplate"]["PPIconSize"], NDuiDB["Nameplate"]["PPIconSize"])
+			end
 		end
 	end
 end
 
 function UF:CreatePlayerPlate()
 	self.mystyle = "PlayerPlate"
-	local iconSize, margin = NDuiDB["Nameplate"]["PPIconSize"], 2
-	self:SetSize(iconSize*5 + margin*4, NDuiDB["Nameplate"]["PPHeight"])
 	self:EnableMouse(false)
-	self.iconSize = iconSize
+	local iconSize, margin = NDuiDB["Nameplate"]["PPIconSize"], 2
+	local pHeight, ppHeight = NDuiDB["Nameplate"]["PPHeight"], NDuiDB["Nameplate"]["PPPHeight"]
+	self:SetSize(iconSize*5 + margin*4, pHeight + ppHeight + C.mult)
 
 	UF:CreateHealthBar(self)
 	UF:CreatePowerBar(self)

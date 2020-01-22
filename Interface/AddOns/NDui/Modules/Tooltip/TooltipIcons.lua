@@ -64,8 +64,8 @@ end
 
 function TT:ReskinRewardIcon()
 	self.Icon:SetTexCoord(unpack(DB.TexCoord))
-	self.bg = B.CreateBG(self.Icon)
-	B.CreateBD(self.bg)
+	self.bg = B.CreateBDFrame(self, 0)
+	self.bg:SetOutside(self.Icon)
 
 	local iconBorder = self.IconBorder
 	iconBorder:SetAlpha(0)

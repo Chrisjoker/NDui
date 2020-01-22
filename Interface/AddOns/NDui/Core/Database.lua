@@ -1,10 +1,15 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
+local bit_band, bit_bor = bit.band, bit.bor
+local COMBATLOG_OBJECT_AFFILIATION_MINE = COMBATLOG_OBJECT_AFFILIATION_MINE or 0x00000001
+local GetSpecialization, GetSpecializationInfo = GetSpecialization, GetSpecializationInfo
+
 DB.Version = GetAddOnMetadata("NDui", "Version")
 DB.Support = GetAddOnMetadata("NDui", "X-Support")
 DB.Client = GetLocale()
 DB.ScreenWidth, DB.ScreenHeight = GetPhysicalScreenSize()
+DB.isNewPatch = GetBuildInfo() == "8.3.0" -- keep it for future purpose
 
 -- Colors
 DB.MyName = UnitName("player")
@@ -28,6 +33,7 @@ DB.r, DB.g, DB.b = DB.ClassColors[DB.MyClass].r, DB.ClassColors[DB.MyClass].g, D
 DB.MyColor = format("|cff%02x%02x%02x", DB.r*255, DB.g*255, DB.b*255)
 DB.InfoColor = "|cff99ccff" --.6,.8,1
 DB.GreyColor = "|cff7b8489"
+BAG_ITEM_QUALITY_COLORS[-1] = {r = 0, g = 0, b = 0}
 BAG_ITEM_QUALITY_COLORS[LE_ITEM_QUALITY_POOR] = {r = .61, g = .61, b = .61}
 BAG_ITEM_QUALITY_COLORS[LE_ITEM_QUALITY_COMMON] = {r = 0, g = 0, b = 0}
 
@@ -44,8 +50,13 @@ DB.normTex = Media.."normTex"
 DB.gradTex = Media.."gradTex"
 DB.flatTex = Media.."flatTex"
 DB.bgTex = Media.."bgTex"
-DB.MicroTex = Media.."MicroMenu\\micro_"
+DB.MicroTex = Media.."Hutu\\"
 DB.arrowTex = Media.."NeonRedArrow"
+DB.rolesTex = Media.."UI-LFG-ICON-ROLES"
+DB.arrowUp = Media.."arrow-up-active"
+DB.arrowDown = Media.."arrow-down-active"
+DB.arrowLeft = Media.."arrow-left-active"
+DB.arrowRight = Media.."arrow-right-active"
 DB.mailTex = "Interface\\Minimap\\Tracking\\Mailbox"
 DB.gearTex = "Interface\\WorldMap\\Gear_64"
 DB.eyeTex = "Interface\\Minimap\\Raid_Icon"		-- blue: \\Dungeon_Icon
@@ -71,10 +82,11 @@ DB.AFKTex = "|T"..FRIENDS_TEXTURE_AFK..":14:14:0:0:16:16:1:15:1:15|t"
 DB.DNDTex = "|T"..FRIENDS_TEXTURE_DND..":14:14:0:0:16:16:1:15:1:15|t"
 
 -- Flags
-DB.MyPetFlags = bit.bor(COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_PET)
-DB.PartyPetFlags = bit.bor(COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_PET)
-DB.RaidPetFlags = bit.bor(COMBATLOG_OBJECT_AFFILIATION_RAID, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_PET)
-DB.GuardianFlags = bit.bor(COMBATLOG_OBJECT_AFFILIATION_MINE, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_GUARDIAN)
+function DB:IsMyPet(flags)
+	return bit_band(flags, COMBATLOG_OBJECT_AFFILIATION_MINE) > 0
+end
+DB.PartyPetFlags = bit_bor(COMBATLOG_OBJECT_AFFILIATION_PARTY, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_PET)
+DB.RaidPetFlags = bit_bor(COMBATLOG_OBJECT_AFFILIATION_RAID, COMBATLOG_OBJECT_REACTION_FRIENDLY, COMBATLOG_OBJECT_CONTROL_PLAYER, COMBATLOG_OBJECT_TYPE_PET)
 
 -- RoleUpdater
 local function CheckRole()

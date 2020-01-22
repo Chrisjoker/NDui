@@ -50,6 +50,8 @@ function module:GetFilterResult(event, msg, name, flag, guid)
 		return
 	end
 
+	if NDuiDB["Chat"]["BlockStranger"] and event == "CHAT_MSG_WHISPER" then return true end -- Block strangers
+
 	if C.BadBoys[name] and C.BadBoys[name] >= 5 then return true end
 
 	local filterMsg = gsub(msg, "|H.-|h(.-)|h", "%1")
@@ -108,7 +110,7 @@ end
 -- Block addon msg
 local addonBlockList = {
 	"任务进度提示", "%[接受任务%]", "%(任务完成%)", "<大脚", "【爱不易】", "EUI[:_]", "打断:.+|Hspell", "PS 死亡: .+>", "%*%*.+%*%*", "<iLvl>", ("%-"):rep(20),
-	"<小队物品等级:.+>", "<LFG>", "进度:", "属性通报", "汐寒", "wow.+兑换码", "wow.+验证码", "【有爱插件】", "：.+>"
+	"<小队物品等级:.+>", "<LFG>", "进度:", "属性通报", "汐寒", "wow.+兑换码", "wow.+验证码", "【有爱插件】", "：.+>", "|Hspell.+=>"
 }
 
 local cvar
@@ -141,7 +143,7 @@ function module:UpdateAddOnBlocker(event, msg, author)
 end
 
 -- Block trash clubs
-local trashClubs = {"站桩", "致敬我们", "我们一起玩游戏", "部落大杂烩"}
+local trashClubs = {"站桩", "致敬我们", "我们一起玩游戏", "部落大杂烩", "小号提升"}
 function module:BlockTrashClub()
 	if self.toastType == BN_TOAST_TYPE_CLUB_INVITATION then
 		local text = self.DoubleLine:GetText() or ""

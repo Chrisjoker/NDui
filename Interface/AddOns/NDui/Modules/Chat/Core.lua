@@ -21,8 +21,11 @@ function module:TabSetAlpha(alpha)
 	end
 end
 
+local isScaling = false
 function module:UpdateChatSize()
 	if not NDuiDB["Chat"]["Lock"] then return end
+	if isScaling then return end
+	isScaling = true
 
 	ChatFrame1:ClearAllPoints()
 	ChatFrame1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 28)
@@ -32,6 +35,7 @@ function module:UpdateChatSize()
 	if bg then
 		bg:SetHeight(NDuiDB["Chat"]["ChatHeight"] + 30)
 	end
+	isScaling = false
 end
 
 function module:SkinChat()
@@ -53,22 +57,18 @@ function module:SkinChat()
 	local eb = _G[name.."EditBox"]
 	eb:SetAltArrowKeyMode(false)
 	eb:ClearAllPoints()
-	eb:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 2, 24)
-	eb:SetPoint("TOPRIGHT", self, "TOPRIGHT", -13, 52)
-	B.CreateBD(eb)
-	B.CreateSD(eb)
-	B.CreateTex(eb)
+	eb:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 4, 26)
+	eb:SetPoint("TOPRIGHT", self, "TOPRIGHT", -17, 50)
+	B.SetBD(eb)
 	for i = 3, 8 do
 		select(i, eb:GetRegions()):SetAlpha(0)
 	end
 
 	local lang = _G[name.."EditBoxLanguage"]
 	lang:GetRegions():SetAlpha(0)
-	lang:SetPoint("TOPLEFT", eb, "TOPRIGHT", 2, 0)
-	lang:SetPoint("BOTTOMRIGHT", eb, "BOTTOMRIGHT", 30, 0)
-	B.CreateBD(lang)
-	B.CreateSD(lang)
-	B.CreateTex(lang)
+	lang:SetPoint("TOPLEFT", eb, "TOPRIGHT", 5, 0)
+	lang:SetPoint("BOTTOMRIGHT", eb, "BOTTOMRIGHT", 29, 0)
+	B.SetBD(lang)
 
 	local tab = _G[name.."Tab"]
 	tab:SetAlpha(1)
@@ -83,6 +83,8 @@ function module:SkinChat()
 	B.HideObject(self.buttonFrame)
 	B.HideObject(self.ScrollBar)
 	B.HideObject(self.ScrollToBottomButton)
+
+	self.oldAlpha = self.oldAlpha or 0 -- fix blizz error, need reviewed
 
 	self.styled = true
 end
@@ -225,18 +227,6 @@ function module:ChatWhisperSticky()
 	end
 end
 
-local isScaling = false
-function module:FixChatFrameAnchor()
-	if isScaling then return end
-	isScaling = true
-
-	local x, y = select(4, ChatFrame1:GetPoint())
-	if x ~= 0 or y ~= 28 then
-		ChatFrame1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 28)
-	end
-	isScaling = false
-end
-
 function module:UpdateTabColors(selected)
 	if selected then
 		self:GetFontString():SetTextColor(1, .8, 0)
@@ -268,11 +258,7 @@ function module:ChatFrameBackground()
 end
 
 function module:OnLogin()
-	if AuroraConfig and not AuroraConfig.reskinFont then
-		fontOutline = ""
-	else
-		fontOutline = "OUTLINE"
-	end
+	fontOutline = NDuiDB["Skins"]["FontOutline"] and "OUTLINE" or ""
 
 	for i = 1, NUM_CHAT_WINDOWS do
 		self.SkinChat(_G["ChatFrame"..i])
@@ -299,11 +285,6 @@ function module:OnLogin()
 	B.HideOption(InterfaceOptionsSocialPanelChatStyle)
 	CombatLogQuickButtonFrame_CustomTexture:SetTexture(nil)
 
-	-- Fix chatframe anchor after scaling
-	if NDuiDB["Chat"]["Lock"] then
-		B:RegisterEvent("UI_SCALE_CHANGED", self.FixChatFrameAnchor)
-	end
-
 	-- Add Elements
 	self:UpdateTimestamp()
 	self:ChatWhisperSticky()
@@ -319,6 +300,7 @@ function module:OnLogin()
 	if NDuiDB["Chat"]["Lock"] then
 		self:UpdateChatSize()
 		hooksecurefunc("FCF_SavePositionAndDimensions", self.UpdateChatSize)
+		B:RegisterEvent("UI_SCALE_CHANGED", self.UpdateChatSize)
 	end
 
 	-- ProfanityFilter

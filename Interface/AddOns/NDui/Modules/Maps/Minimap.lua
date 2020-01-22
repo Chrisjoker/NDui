@@ -9,9 +9,8 @@ local cr, cg, cb = DB.r, DB.g, DB.b
 function module:CreatePulse()
 	if not NDuiDB["Map"]["CombatPulse"] then return end
 
-	local MBG = B.CreateBG(Minimap, 1)
-	B.CreateSD(MBG)
-	local anim = MBG:CreateAnimationGroup()
+	local bg = B.CreateBDFrame(Minimap, nil, true)
+	local anim = bg:CreateAnimationGroup()
 	anim:SetLooping("BOUNCE")
 	anim.fader = anim:CreateAnimation("Alpha")
 	anim.fader:SetFromAlpha(.8)
@@ -21,15 +20,15 @@ function module:CreatePulse()
 
 	local function updateMinimapAnim(event)
 		if event == "PLAYER_REGEN_DISABLED" then
-			MBG.Shadow:SetBackdropBorderColor(1, 0, 0)
+			bg:SetBackdropBorderColor(1, 0, 0)
 			anim:Play()
 		elseif not InCombatLockdown() then
 			if C_Calendar.GetNumPendingInvites() > 0 or MiniMapMailFrame:IsShown() then
-				MBG.Shadow:SetBackdropBorderColor(1, 1, 0)
+				bg:SetBackdropBorderColor(1, 1, 0)
 				anim:Play()
 			else
 				anim:Stop()
-				MBG.Shadow:SetBackdropBorderColor(0, 0, 0)
+				bg:SetBackdropBorderColor(0, 0, 0)
 			end
 		end
 	end
@@ -41,7 +40,7 @@ function module:CreatePulse()
 	MiniMapMailFrame:HookScript("OnHide", function()
 		if InCombatLockdown() then return end
 		anim:Stop()
-		MBG.Shadow:SetBackdropBorderColor(0, 0, 0)
+		bg:SetBackdropBorderColor(0, 0, 0)
 	end)
 end
 
@@ -54,6 +53,11 @@ function module:ReskinRegions()
 		self:GetPushedTexture():SetTexture(DB.garrTex)
 		self:GetHighlightTexture():SetTexture(DB.garrTex)
 		self:SetSize(30, 30)
+
+		if RecycleBinToggleButton and not RecycleBinToggleButton.settled then
+			RecycleBinToggleButton:SetPoint("BOTTOMRIGHT", -15, -6)
+			RecycleBinToggleButton.settled = true
+		end
 	end)
 	if not IsAddOnLoaded("GarrisonMissionManager") then
 		GarrisonLandingPageMinimapButton:RegisterForClicks("AnyUp")
@@ -114,7 +118,7 @@ function module:ReskinRegions()
 	Invt:SetPoint("TOPRIGHT", Minimap, "BOTTOMLEFT", -20, -20)
 	Invt:SetSize(300, 80)
 	Invt:Hide()
-	B.SetBackground(Invt)
+	B.SetBD(Invt)
 	B.CreateFS(Invt, 16, DB.InfoColor..GAMETIME_TOOLTIP_CALENDAR_INVITES)
 
 	local function updateInviteVisibility()
@@ -154,8 +158,8 @@ function module:RecycleBin()
 	}
 
 	local bu = CreateFrame("Button", "RecycleBinToggleButton", Minimap)
-	bu:SetSize(24, 24)
-	bu:SetPoint("BOTTOMLEFT", -15, -15)
+	bu:SetSize(30, 30)
+	bu:SetPoint("BOTTOMRIGHT", 4, -6)
 	bu.Icon = bu:CreateTexture(nil, "ARTWORK")
 	bu.Icon:SetAllPoints()
 	bu.Icon:SetTexture(DB.binTex)
@@ -163,7 +167,7 @@ function module:RecycleBin()
 	B.AddTooltip(bu, "ANCHOR_LEFT", L["Minimap RecycleBin"], "white")
 
 	local bin = CreateFrame("Frame", "RecycleBinFrame", UIParent)
-	bin:SetPoint("RIGHT", bu, "LEFT", -3, -6)
+	bin:SetPoint("BOTTOMRIGHT", bu, "BOTTOMLEFT", -3, 10)
 	bin:Hide()
 	B.CreateGF(bin, 220, 40, "Horizontal", 0, 0, 0, 0, .7)
 	local topLine = CreateFrame("Frame", nil, bin)
@@ -175,7 +179,7 @@ function module:RecycleBin()
 	local rightLine = CreateFrame("Frame", nil, bin)
 	rightLine:SetPoint("LEFT", bin, "RIGHT", 0, 0)
 	B.CreateGF(rightLine, 1, 40, "Vertical", cr, cg, cb, .7, .7)
-	bin:SetFrameStrata("LOW")
+	bin:SetFrameStrata("TOOLTIP")
 
 	local function hideBinButton()
 		bin:Hide()
@@ -187,6 +191,7 @@ function module:RecycleBin()
 
 	local secureAddons = {
 		["HANDYNOTESPIN"] = true,
+		["GATHERMATEPIN"] = true,
 	}
 
 	local function isButtonSecure(name)
@@ -237,7 +242,7 @@ function module:RecycleBin()
 						child.highlight:SetAllPoints()
 						child.highlight:SetColorTexture(1, 1, 1, .25)
 					end
-					B.CreateSD(child, 3, 3)
+					B.SetBD(child)
 
 					-- Naughty Addons
 					if name == "DBMMinimapButton" then

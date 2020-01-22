@@ -63,9 +63,12 @@ local function isItemLegendary(item)
 	return item.rarity == LE_ITEM_QUALITY_LEGENDARY
 end
 
+local isPetToy = {
+	[174925] = true,
+}
 local function isMountAndPet(item)
 	if not NDuiDB["Bags"]["ItemFilter"] then return end
-	return item.classID == LE_ITEM_CLASS_MISCELLANEOUS and (item.subClassID == LE_ITEM_MISCELLANEOUS_MOUNT or item.subClassID == LE_ITEM_MISCELLANEOUS_COMPANION_PET)
+	return (not isPetToy[item.id]) and item.classID == LE_ITEM_CLASS_MISCELLANEOUS and (item.subClassID == LE_ITEM_MISCELLANEOUS_MOUNT or item.subClassID == LE_ITEM_MISCELLANEOUS_COMPANION_PET)
 end
 
 local function isItemFavourite(item)
@@ -75,7 +78,7 @@ end
 
 local function isEmptySlot(item)
 	if not NDuiDB["Bags"]["GatherEmpty"] then return end
-	return not item.texture and not module.SpecialBags[item.bagID]
+	return module.initComplete and not item.texture and module.BagsType[item.bagID] == 0
 end
 
 function module:GetFilters()
