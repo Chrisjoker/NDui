@@ -9,8 +9,6 @@ local GetNumArchaeologyRaces = GetNumArchaeologyRaces
 local GetNumArtifactsByRace = GetNumArtifactsByRace
 local GetArtifactInfoByRace = GetArtifactInfoByRace
 local GetArchaeologyRaceInfo = GetArchaeologyRaceInfo
-local GetNumAuctionItems, GetAuctionItemInfo = GetNumAuctionItems, GetAuctionItemInfo
-local FauxScrollFrame_GetOffset, SetMoneyFrameColor = FauxScrollFrame_GetOffset, SetMoneyFrameColor
 local EquipmentManager_UnequipItemInSlot = EquipmentManager_UnequipItemInSlot
 local EquipmentManager_RunAction = EquipmentManager_RunAction
 local GetInventoryItemTexture = GetInventoryItemTexture
@@ -58,6 +56,8 @@ function M:OnLogin()
 	self:TradeTabs()
 	self:MoverQuestTracker()
 	self:CreateRM()
+	self:BlockWQTInvite()
+	self:OverrideAWQ()
 
 	-- Max camera distancee
 	if tonumber(GetCVar("cameraDistanceMaxZoomFactor")) ~= 2.6 then
@@ -115,8 +115,8 @@ end
 -- Get Naked
 function M:NakedIcon()
 	local bu = CreateFrame("Button", nil, CharacterFrameInsetRight)
-	bu:SetSize(31, 33)
-	bu:SetPoint("RIGHT", PaperDollSidebarTab1, "LEFT", -4, -2)
+	bu:SetSize(31, 34)
+	bu:SetPoint("RIGHT", PaperDollSidebarTab1, "LEFT", -4, -3)
 	B.PixelIcon(bu, "Interface\\ICONS\\SPELL_SHADOW_TWISTEDFAITH", true)
 	B.AddTooltip(bu, "ANCHOR_RIGHT", L["Get Naked"])
 
@@ -436,12 +436,13 @@ do
 		end
 	end)
 
-	local function dragAlert(event, unit)
-		if unit ~= "player" then return end
-		UIErrorsFrame:AddMessage(DB.InfoColor..L["Drag AltBar Tip"])
-		B:UnregisterEvent(event, dragAlert)
-	end
-	B:RegisterEvent("UNIT_POWER_BAR_SHOW", dragAlert)
+	local count = 0
+	PlayerPowerBarAlt:HookScript("OnEnter", function()
+		if count < 5 then
+			UIErrorsFrame:AddMessage(DB.InfoColor..L["Drag AltBar Tip"])
+			count = count + 1
+		end
+	end)
 end
 
 -- ALT+RightClick to buy a stack
@@ -652,30 +653,67 @@ do
 	B:RegisterEvent("ADDON_LOADED", fixCommunitiesNews)
 end
 
--- Check SHIFT key status
-do
-	local function onUpdate(self, elapsed)
-		if IsShiftKeyDown() then
-			self.elapsed = self.elapsed + elapsed
-			if self.elapsed > 5 then
-				UIErrorsFrame:AddMessage(DB.InfoColor..L["StupidShiftKey"])
-				self:Hide()
-			end
-		end
-	end
-	local shiftUpdater = CreateFrame("Frame")
-	shiftUpdater:SetScript("OnUpdate", onUpdate)
-	shiftUpdater:Hide()
+-- Button to block auto invite addons
+function M:BlockWQTInvite()
+	if not NDuiDB["Misc"]["BlockWQT"] then return end
 
-	local function ShiftKeyOnEvent(_, key, down)
-		if key == "LSHIFT" then
-			if down == 1 then
-				shiftUpdater.elapsed = 0
-				shiftUpdater:Show()
-			else
-				shiftUpdater:Hide()
-			end
+	local frame = CreateFrame("Frame", nil, StaticPopup1)
+	frame:SetPoint("TOP", StaticPopup1, "BOTTOM", 0, -3)
+	frame:SetSize(200, 31)
+	B.CreateBD(frame)
+	B.CreateTex(frame)
+	B.CreateSD(frame)
+	frame:Hide()
+
+	local WQTUsers = {}
+	local currentName
+
+	local bu = CreateFrame("Button", nil, frame)
+	bu:SetInside(frame, 5, 5)
+	B.CreateFS(bu, 15, L["DeclineNBlock"], "system")
+	bu.title = L["Tips"]
+	B.AddTooltip(bu, "ANCHOR_TOP", L["DeclineNBlockTips"], "info")
+	B.Reskin(bu)
+	bu:SetScript("OnClick", function()
+		if currentName then
+			WQTUsers[currentName] = true
+		end
+		StaticPopup_Hide("PARTY_INVITE")
+	end)
+
+	B:RegisterEvent("PARTY_INVITE_REQUEST", function(_, name)
+		if WQTUsers[name] then
+			StaticPopup_Hide("PARTY_INVITE")
+			return
+		end
+		frame:Show()
+		currentName = name
+	end)
+
+	hooksecurefunc("StaticPopup_OnHide", function()
+		frame:Hide()
+		currentName = nil
+	end)
+end
+
+-- Override default settings for AngryWorldQuests
+function M:OverrideAWQ()
+	if not IsAddOnLoaded("AngryWorldQuests") then return end
+
+	AngryWorldQuests_Config = AngryWorldQuests_Config or {}
+	AngryWorldQuests_CharacterConfig = AngryWorldQuests_CharacterConfig or {}
+
+	local settings = {
+		hideFilteredPOI = true,
+		showContinentPOI = true,
+		sortMethod = 2,
+	}
+	local function overrideOptions(_, key)
+		local value = settings[key]
+		if value then
+			AngryWorldQuests_Config[key] = value
+			AngryWorldQuests_CharacterConfig[key] = value
 		end
 	end
-	B:RegisterEvent("MODIFIER_STATE_CHANGED", ShiftKeyOnEvent)
+	hooksecurefunc(AngryWorldQuests.Modules.Config, "Set", overrideOptions)
 end

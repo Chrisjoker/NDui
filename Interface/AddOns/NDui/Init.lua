@@ -71,8 +71,7 @@ end
 
 -- Init
 local function GetBestScale()
-	local scale = B:Round(768 / DB.ScreenHeight, 5)
-	return max(.4, min(1.15, scale))
+	return max(.4, min(1.15, 768 / DB.ScreenHeight, 5))
 end
 
 function B:SetupUIScale(init)
@@ -102,9 +101,10 @@ local function UpdatePixelScale(event)
 end
 
 B:RegisterEvent("PLAYER_LOGIN", function()
-	-- Update UIScale
+	-- Initial
 	B:SetupUIScale()
 	B:RegisterEvent("UI_SCALE_CHANGED", UpdatePixelScale)
+	B:SetSmoothingAmount(NDuiDB["UFs"]["SmoothAmount"])
 
 	for _, module in next, initQueue do
 		if module.OnLogin then

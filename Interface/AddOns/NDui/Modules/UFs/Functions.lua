@@ -3,7 +3,7 @@ local B, C, L, DB = unpack(ns)
 
 local oUF = ns.oUF or oUF
 local UF = B:RegisterModule("UnitFrames")
-local format, floor, abs = string.format, math.floor, math.abs
+local format, floor = string.format, math.floor
 local pairs, next = pairs, next
 
 -- Custom colors
@@ -82,7 +82,7 @@ function UF:CreateHealthBar(self)
 	health:SetFrameLevel(self:GetFrameLevel() - 2)
 	health.backdrop = B.CreateBDFrame(health, 0, true) -- don't mess up with libs
 	health.shadow = health.backdrop.Shadow
-	B.SmoothBar(health)
+	B:SmoothBar(health)
 
 	local bg = health:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
@@ -135,19 +135,18 @@ function UF:CreateHealthText(self)
 		name:SetWidth(self:GetWidth()*.55)
 	end
 
-	local colorStr = self.Health.colorClass and "" or "[color]"
 	if mystyle == "player" then
-		self:Tag(name, " "..colorStr.."[name]")
+		self:Tag(name, " [color][name]")
 	elseif mystyle == "target" then
-		self:Tag(name, "[fulllevel] "..colorStr.."[name][afkdnd]")
+		self:Tag(name, "[fulllevel] [color][name][afkdnd]")
 	elseif mystyle == "focus" then
-		self:Tag(name, colorStr.."[name][afkdnd]")
+		self:Tag(name, "[color][name][afkdnd]")
 	elseif mystyle == "nameplate" then
 		self:Tag(name, "[nplevel][name]")
 	elseif mystyle == "arena" then
-		self:Tag(name, "[arenaspec] "..colorStr.."[name]")
+		self:Tag(name, "[arenaspec] [color][name]")
 	else
-		self:Tag(name, colorStr.."[name]")
+		self:Tag(name, "[color][name]")
 	end
 
 	local hpval = B.CreateFS(textFrame, retVal(self, 14, 13, 13, 13, NDuiDB["Nameplate"]["HealthTextSize"]), "", false, "RIGHT", -3, -1)
@@ -226,7 +225,7 @@ function UF:CreatePowerBar(self)
 	power:SetHeight(powerHeight)
 	power:SetFrameLevel(self:GetFrameLevel() - 2)
 	power.backdrop = B.CreateBDFrame(power, 0)
-	B.SmoothBar(power)
+	B:SmoothBar(power)
 
 	if self.Health.shadow then
 		self.Health.shadow:SetPoint("BOTTOMRIGHT", power.backdrop, C.mult+3, -C.mult-3)
@@ -363,11 +362,12 @@ function UF:CreateRaidMark(self)
 	if mystyle == "raid" then
 		ri:SetPoint("TOP", self, 0, 10)
 	elseif mystyle == "nameplate" then
-		ri:SetPoint("RIGHT", self, "LEFT", -3, 3)
+		ri:SetPoint("RIGHT", self, "LEFT", -3, 0)
+		ri:SetParent(self.Health)
 	else
 		ri:SetPoint("TOPRIGHT", self, "TOPRIGHT", -30, 10)
 	end
-	local size = retVal(self, 14, 13, 12, 12, 28)
+	local size = retVal(self, 14, 13, 12, 12, 32)
 	ri:SetSize(size, size)
 	self.RaidTargetIndicator = ri
 end
@@ -675,7 +675,7 @@ function UF:CreateAuras(self)
 		bu.initialAnchor = "BOTTOMLEFT"
 		bu["growth-y"] = "UP"
 		if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
-			bu:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 20 + _G.oUF_ClassPowerBar:GetHeight())
+			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5 + _G.oUF_ClassPowerBar:GetHeight())
 		else
 			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
 		end
@@ -1024,8 +1024,9 @@ end
 
 function UF:CreateAddPower(self)
 	local bar = CreateFrame("StatusBar", nil, self)
-	bar:SetSize(150, 4)
-	bar:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -10)
+	bar:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -3)
+	bar:SetPoint("TOPRIGHT", self.Power, "BOTTOMRIGHT", 0, -3)
+	bar:SetHeight(4)
 	bar:SetStatusBarTexture(DB.normTex)
 	B.CreateBDFrame(bar, 0, true)
 	bar.colorPower = true
@@ -1040,6 +1041,19 @@ function UF:CreateAddPower(self)
 	self.AdditionalPower.bg = bg
 	self.AdditionalPower.Text = text
 	self.AdditionalPower.PostUpdate = UF.PostUpdateAddPower
+	self.AdditionalPower.displayPairs = {
+		["DRUID"] = {
+			[1] = true,
+			[3] = true,
+			[8] = true,
+		},
+		["SHAMAN"] = {
+			[11] = true,
+		},
+		["PRIEST"] = {
+			[13] = true,
+		}
+	}
 end
 
 function UF:CreateSwing(self)

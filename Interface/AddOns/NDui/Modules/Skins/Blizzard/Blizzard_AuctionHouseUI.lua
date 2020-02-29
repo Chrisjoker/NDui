@@ -68,6 +68,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 			if child and child.Icon then
 				if not child.styled then
 					child.Icon.bg = B.ReskinIcon(child.Icon)
+					if child.IconBorder then child.IconBorder:SetAlpha(0) end
 					child.styled = true
 				end
 				child.Icon.bg:SetShown(child.Icon:IsShown())
@@ -205,6 +206,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	reskinSellList(AuctionHouseFrameAuctionsFrame.AllAuctionsList, true)
 	reskinSellList(AuctionHouseFrameAuctionsFrame.BidsList, true)
 	reskinSellList(AuctionHouseFrameAuctionsFrame.CommoditiesList, true)
+	reskinSellList(AuctionHouseFrameAuctionsFrame.ItemList, true)
 	reskinItemDisplay(AuctionHouseFrameAuctionsFrame)
 
 	B.ReskinTab(AuctionHouseFrameAuctionsFrameAuctionsTab)

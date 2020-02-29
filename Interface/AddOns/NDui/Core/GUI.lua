@@ -51,6 +51,15 @@ local defaultSettings = {
 		SplitCount = 1,
 		SpecialBagsColor = false,
 		iLvlToShow = 1,
+
+		FilterJunk = true,
+		FilterConsumble = true,
+		FilterAzerite = true,
+		FilterEquipment = true,
+		FilterLegendary = true,
+		FilterMount = true,
+		FilterFavourite = true,
+		FilterGoods = false,
 	},
 	Auras = {
 		Reminder = true,
@@ -62,7 +71,7 @@ local defaultSettings = {
 		BuffSize = 30,
 		BuffsPerRow = 16,
 		ReverseDebuffs = false,
-		DebuffSize = 34,
+		DebuffSize = 30,
 		DebuffsPerRow = 16,
 	},
 	AuraWatch = {
@@ -126,6 +135,7 @@ local defaultSettings = {
 		BuffIndicatorScale = 1,
 		UFTextScale = 1,
 		PartyAltPower = true,
+		SmoothAmount = .3,
 
 		PlayerWidth = 245,
 		PlayerHeight = 24,
@@ -200,7 +210,7 @@ local defaultSettings = {
 		PPHeight = 5,
 		PPPHeight = 5,
 		PPPowerText = false,
-		FullHealth = false,
+		FullHealth = true,
 		SecureColor = {r=1, g=0, b=1},
 		TransColor = {r=1, g=.8, b=0},
 		InsecureColor = {r=1, g=0, b=0},
@@ -259,6 +269,7 @@ local defaultSettings = {
 		HideJunkGuild = true,
 		AzeriteArmor = true,
 		OnlyArmorIcons = false,
+		CorruptionRank = true,
 	},
 	Misc = {
 		Mail = true,
@@ -297,6 +308,7 @@ local defaultSettings = {
 		RMRune = false,
 		DBMCount = "10",
 		EasyMarking = true,
+		BlockWQT = true,
 	},
 	Tutorial = {
 		Complete = false,
@@ -385,6 +397,10 @@ loader:SetScript("OnEvent", function(self, _, addon)
 end)
 
 -- Callbacks
+local function setupBagFilter()
+	G:SetupBagFilter(guiPage[2])
+end
+
 local function setupUnitFrame()
 	G:SetupUnitFrame(guiPage[3])
 end
@@ -428,6 +444,13 @@ end
 
 local function updateBagStatus()
 	B:GetModule("Bags"):UpdateAllBags()
+
+	local label = BAG_FILTER_EQUIPMENT
+	if NDuiDB["Bags"]["ItemSetFilter"] then
+		label = L["Equipement Set"]
+	end
+	_G.NDui_BackpackEquipment.label:SetText(label)
+	_G.NDui_BackpackBankEquipment.label:SetText(label)
 end
 
 local function updateActionbarScale()
@@ -508,6 +531,10 @@ end
 
 local function refreshRaidFrameIcons()
 	B:GetModule("UnitFrames"):RefreshRaidFrameIcons()
+end
+
+local function updateSmoothingAmount()
+	B:SetSmoothingAmount(NDuiDB["UFs"]["SmoothAmount"])
 end
 
 local function updateMinimapScale()
@@ -617,8 +644,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 	[2] = {
 		{1, "Bags", "Enable", "|cff00cc4c"..L["Enable Bags"]},
 		{},--blank
-		{1, "Bags", "ItemFilter", L["Bags ItemFilter"].."*", nil, nil, updateBagStatus},
-		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"].."*", true, nil, updateBagStatus},
+		{1, "Bags", "ItemFilter", L["Bags ItemFilter"].."*", nil, setupBagFilter, updateBagStatus},
+		{1, "Bags", "ItemSetFilter", L["Use ItemSetFilter"].."*", true, nil, updateBagStatus, L["ItemSetFilterTips"]},
 		{1, "Bags", "GatherEmpty", L["Bags GatherEmpty"].."*", nil, nil, updateBagStatus},
 		{1, "Bags", "ReverseSort", L["Bags ReverseSort"].."*", true, nil, updateBagSortOrder},
 		{1, "Bags", "SpecialBagsColor", L["SpecialBagsColor"].."*", nil, nil, updateBagStatus, L["SpecialBagsColorTip"]},
@@ -629,8 +656,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{3, "Bags", "BagsScale", L["Bags Scale"], false, {.5, 1.5, 1}},
 		{3, "Bags", "IconSize", L["Bags IconSize"], true, {30, 42, 0}},
-		{3, "Bags", "BagsWidth", L["Bags Width"], false, {10, 20, 0}},
-		{3, "Bags", "BankWidth", L["Bank Width"], true, {10, 20, 0}},
+		{3, "Bags", "BagsWidth", L["Bags Width"], false, {12, 40, 0}},
+		{3, "Bags", "BankWidth", L["Bank Width"], true, {12, 40, 0}},
 	},
 	[3] = {
 		{1, "UFs", "Enable", "|cff00cc4c"..L["Enable UFs"], nil, setupUnitFrame, nil, L["HideUFWarning"]},
@@ -646,9 +673,10 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "ClassPower", L["UFs ClassPower"]},
 		{1, "UFs", "RuneTimer", L["UFs RuneTimer"], true},
 		{1, "UFs", "PlayerDebuff", L["Player Debuff"]},
-		{1, "UFs", "ToTAuras", L["ToT Debuff"], true},
-		{4, "UFs", "HealthColor", L["HealthColor"], nil, {L["Default Dark"], L["ClassColorHP"], L["GradientHP"]}},
-		{3, "UFs", "UFTextScale", L["UFTextScale"], true, {.8, 2, 2}, updateUFTextScale},
+		{1, "UFs", "ToTAuras", L["ToT Debuff"]},
+		{4, "UFs", "HealthColor", L["HealthColor"], true, {L["Default Dark"], L["ClassColorHP"], L["GradientHP"]}},
+		{3, "UFs", "UFTextScale", L["UFTextScale"], nil, {.8, 2, 2}, updateUFTextScale},
+		{3, "UFs", "SmoothAmount", "|cff00cc4c"..L["SmoothAmount"], true, {.15, .6, 2}, updateSmoothingAmount, L["SmoothAmountTip"]},
 		{},--blank
 		{1, "UFs", "CombatText", "|cff00cc4c"..L["UFs CombatText"]},
 		{1, "UFs", "AutoAttack", L["CombatText AutoAttack"]},
@@ -854,6 +882,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{1, "Tooltip", "AzeriteArmor", "|cff00cc4c"..L["Show AzeriteArmor"]},
 		{1, "Tooltip", "OnlyArmorIcons", L["Armor icons only"].."*", true},
+		{1, "Tooltip", "CorruptionRank", "|cff00cc4c"..L["ShowCorruptionRank"]},
 	},
 	[12] = {
 		{1, "Misc", "ItemLevel", "|cff00cc4c"..L["Show ItemLevel"]},
@@ -874,6 +903,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Misc", "FasterLoot", L["Faster Loot"].."*", nil, nil, updateFasterLoot},
 		{1, "Misc", "HideErrors", L["Hide Error"].."*", true, nil, updateErrorBlocker},
 		{1, "Misc", "InstantDelete", L["InstantDelete"].."*"},
+		{1, "Misc", "BlockWQT", L["BlockWQT"], true},
 	},
 	[13] = {
 		{1, "ACCOUNT", "VersionCheck", L["Version Check"]},

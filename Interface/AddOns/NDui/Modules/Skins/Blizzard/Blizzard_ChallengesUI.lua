@@ -25,20 +25,19 @@ C.themes["Blizzard_ChallengesUI"] = function()
 		end
 
 		if IsAddOnLoaded("AngryKeystones") and not angryStyle then
-			local scheduel, party = select(5, self:GetChildren())
+			local mod = AngryKeystones.Modules.Schedule
+			local scheduel = mod.AffixFrame
+			local party = mod.PartyFrame
 
-			scheduel:GetRegions():SetAlpha(0)
-			select(3, scheduel:GetRegions()):SetAlpha(0)
-			B.CreateBD(scheduel, .3)
+			B.StripTextures(scheduel)
+			B.CreateBD(scheduel, .25)
 			if scheduel.Entries then
 				for i = 1, 3 do
 					B.AffixesSetup(scheduel.Entries[i])
 				end
 			end
-
-			party:GetRegions():SetAlpha(0)
-			select(3, party:GetRegions()):SetAlpha(0)
-			B.CreateBD(party, .3)
+			B.StripTextures(party)
+			B.CreateBD(party, .25)
 
 			angryStyle = true
 		end
@@ -72,8 +71,15 @@ C.themes["Blizzard_ChallengesUI"] = function()
 	noticeFrame.SeasonDescription2:SetTextColor(1, 1, 1)
 	noticeFrame.SeasonDescription3:SetTextColor(1, .8, 0)
 
-	local affix = ChallengesFrame.SeasonChangeNoticeFrame.Affix
+	local affix = noticeFrame.Affix
 	B.StripTextures(affix)
-	B.ReskinIcon(affix.Portrait)
-	--affix.Portrait:SetTexture(2446016) -- for testing
+	local bg = B.ReskinIcon(affix.Portrait)
+	bg:SetFrameLevel(3)
+
+	hooksecurefunc(affix, "SetUp", function(_, affixID)
+		local _, _, texture = C_ChallengeMode.GetAffixInfo(affixID)
+		if texture then
+			affix.Portrait:SetTexture(texture)
+		end
+	end)
 end

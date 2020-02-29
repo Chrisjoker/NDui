@@ -110,8 +110,8 @@ function M:ItemLevel_UpdateTraits(button, id, link)
 	if not allTierInfo then return end
 
 	for i = 1, 2 do
-		local powerIDs = allTierInfo[i].azeritePowerIDs
-		if powerIDs[1] == 13 then break end
+		local powerIDs = allTierInfo[i] and allTierInfo[i].azeritePowerIDs
+		if not powerIDs or powerIDs[1] == 13 then break end
 
 		for _, powerID in pairs(powerIDs) do
 			local selected = C_AzeriteEmpoweredItem_IsPowerSelected(empoweredItemLocation, powerID)

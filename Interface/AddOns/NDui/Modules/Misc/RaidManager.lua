@@ -215,7 +215,7 @@ function M:CreateRM()
 		B.ReskinMenuButton(marker)
 		marker:SetNormalTexture("Interface\\RaidFrame\\Raid-WorldPing")
 		marker:GetNormalTexture():SetVertexColor(DB.r, DB.g, DB.b)
-		marker:HookScript("OnMouseUp", function(_, btn)
+		marker:HookScript("OnMouseUp", function()
 			if (IsInGroup() and not IsInRaid()) or UnitIsGroupLeader("player") or UnitIsGroupAssistant("player") then return end
 			UIErrorsFrame:AddMessage(DB.InfoColor..ERR_NOT_LEADER)
 		end)
@@ -453,7 +453,7 @@ function M:CreateRM()
 	header:RegisterForClicks("AnyUp")
 	header:SetScript("OnClick", function(_, btn)
 		if btn == "LeftButton" then
-			ToggleFrame(menu)
+			B:TogglePanel(menu)
 
 			if menu:IsShown() then
 				menu:ClearAllPoints()
@@ -462,9 +462,9 @@ function M:CreateRM()
 				else
 					menu:SetPoint("BOTTOM", header, "TOP", 0, 3)
 				end
-			end
 
-			updateText(bu[2].text)
+				updateText(bu[2].text)
+			end
 		end
 	end)
 	header:SetScript("OnDoubleClick", function(_, btn)

@@ -168,7 +168,7 @@ end
 function module:CreateBagToggle()
 	local bu = B.CreateButton(self, 24, 24, true, "Interface\\Buttons\\Button-Backpack-Up")
 	bu:SetScript("OnClick", function()
-		ToggleFrame(self.BagBar)
+		B:TogglePanel(self.BagBar)
 		if self.BagBar:IsShown() then
 			bu:SetBackdropBorderColor(1, .8, 0)
 			PlaySound(SOUNDKIT.IG_BACKPACK_OPEN)
@@ -229,7 +229,7 @@ function module:CreateDeleteButton()
 		end
 		self:GetScript("OnEnter")(self)
 	end)
-	bu.title = "|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0:0:0:0|t"..L["ItemDeleteMode"]
+	bu.title = L["ItemDeleteMode"]
 	B.AddTooltip(bu, "ANCHOR_TOP")
 
 	return bu
@@ -455,60 +455,69 @@ function module:OnLogin()
 	module.BagsType[-3] = 0	-- reagent
 
 	local f = {}
-	local onlyBags, bagAzeriteItem, bagEquipment, bagConsumble, bagsJunk, onlyBank, bankAzeriteItem, bankLegendary, bankEquipment, bankConsumble, onlyReagent, bagMountPet, bankMountPet, bagFavourite, bankFavourite = self:GetFilters()
+	local filters = self:GetFilters()
 
 	function Backpack:OnInit()
 		local MyContainer = self:GetContainerClass()
 
 		f.main = MyContainer:New("Main", {Columns = bagsWidth, Bags = "bags"})
-		f.main:SetFilter(onlyBags, true)
+		f.main:SetFilter(filters.onlyBags, true)
 		f.main:SetPoint("BOTTOMRIGHT", -50, 50)
 
 		f.junk = MyContainer:New("Junk", {Columns = bagsWidth, Parent = f.main})
-		f.junk:SetFilter(bagsJunk, true)
+		f.junk:SetFilter(filters.bagsJunk, true)
 
 		f.bagFavourite = MyContainer:New("BagFavourite", {Columns = bagsWidth, Parent = f.main})
-		f.bagFavourite:SetFilter(bagFavourite, true)
+		f.bagFavourite:SetFilter(filters.bagFavourite, true)
 
 		f.azeriteItem = MyContainer:New("AzeriteItem", {Columns = bagsWidth, Parent = f.main})
-		f.azeriteItem:SetFilter(bagAzeriteItem, true)
+		f.azeriteItem:SetFilter(filters.bagAzeriteItem, true)
 
 		f.equipment = MyContainer:New("Equipment", {Columns = bagsWidth, Parent = f.main})
-		f.equipment:SetFilter(bagEquipment, true)
+		f.equipment:SetFilter(filters.bagEquipment, true)
 
 		f.consumble = MyContainer:New("Consumble", {Columns = bagsWidth, Parent = f.main})
-		f.consumble:SetFilter(bagConsumble, true)
+		f.consumble:SetFilter(filters.bagConsumble, true)
 
 		f.bagCompanion = MyContainer:New("BagCompanion", {Columns = bagsWidth, Parent = f.main})
-		f.bagCompanion:SetFilter(bagMountPet, true)
+		f.bagCompanion:SetFilter(filters.bagMountPet, true)
+
+		f.bagGoods = MyContainer:New("BagGoods", {Columns = bagsWidth, Parent = f.main})
+		f.bagGoods:SetFilter(filters.bagGoods, true)
 
 		f.bank = MyContainer:New("Bank", {Columns = bankWidth, Bags = "bank"})
-		f.bank:SetFilter(onlyBank, true)
+		f.bank:SetFilter(filters.onlyBank, true)
 		f.bank:SetPoint("BOTTOMRIGHT", f.main, "BOTTOMLEFT", -10, 0)
 		f.bank:Hide()
 
 		f.bankFavourite = MyContainer:New("BankFavourite", {Columns = bankWidth, Parent = f.bank})
-		f.bankFavourite:SetFilter(bankFavourite, true)
+		f.bankFavourite:SetFilter(filters.bankFavourite, true)
 
 		f.bankAzeriteItem = MyContainer:New("BankAzeriteItem", {Columns = bankWidth, Parent = f.bank})
-		f.bankAzeriteItem:SetFilter(bankAzeriteItem, true)
+		f.bankAzeriteItem:SetFilter(filters.bankAzeriteItem, true)
 
 		f.bankLegendary = MyContainer:New("BankLegendary", {Columns = bankWidth, Parent = f.bank})
-		f.bankLegendary:SetFilter(bankLegendary, true)
+		f.bankLegendary:SetFilter(filters.bankLegendary, true)
 
 		f.bankEquipment = MyContainer:New("BankEquipment", {Columns = bankWidth, Parent = f.bank})
-		f.bankEquipment:SetFilter(bankEquipment, true)
+		f.bankEquipment:SetFilter(filters.bankEquipment, true)
 
 		f.bankConsumble = MyContainer:New("BankConsumble", {Columns = bankWidth, Parent = f.bank})
-		f.bankConsumble:SetFilter(bankConsumble, true)
+		f.bankConsumble:SetFilter(filters.bankConsumble, true)
 
 		f.bankCompanion = MyContainer:New("BankCompanion", {Columns = bankWidth, Parent = f.bank})
-		f.bankCompanion:SetFilter(bankMountPet, true)
+		f.bankCompanion:SetFilter(filters.bankMountPet, true)
+
+		f.bankGoods = MyContainer:New("BankGoods", {Columns = bankWidth, Parent = f.bank})
+		f.bankGoods:SetFilter(filters.bankGoods, true)
 
 		f.reagent = MyContainer:New("Reagent", {Columns = bankWidth})
-		f.reagent:SetFilter(onlyReagent, true)
+		f.reagent:SetFilter(filters.onlyReagent, true)
 		f.reagent:SetPoint("BOTTOMLEFT", f.bank)
 		f.reagent:Hide()
+
+		module.BagGroup = {f.azeriteItem, f.equipment, f.bagCompanion, f.bagGoods, f.consumble, f.bagFavourite, f.junk}
+		module.BankGroup = {f.bankAzeriteItem, f.bankEquipment, f.bankLegendary, f.bankCompanion, f.bankGoods, f.bankConsumble, f.bankFavourite}
 	end
 
 	local initBagType
@@ -685,6 +694,7 @@ function module:OnLogin()
 	end
 
 	local MyContainer = Backpack:GetContainerClass()
+
 	function MyContainer:OnContentsChanged()
 		self:SortButtons("bagSlot")
 
@@ -719,8 +729,8 @@ function module:OnLogin()
 		end
 		self:SetSize(width + xOffset*2, height + offset)
 
-		module:UpdateAnchors(f.main, {f.azeriteItem, f.equipment, f.bagCompanion, f.consumble, f.bagFavourite, f.junk})
-		module:UpdateAnchors(f.bank, {f.bankAzeriteItem, f.bankEquipment, f.bankLegendary, f.bankCompanion, f.bankConsumble, f.bankFavourite})
+		module:UpdateAnchors(f.main, module.BagGroup)
+		module:UpdateAnchors(f.bank, module.BankGroup)
 	end
 
 	function MyContainer:OnCreate(name, settings)
@@ -750,8 +760,13 @@ function module:OnLogin()
 			label = MOUNTS_AND_PETS
 		elseif strmatch(name, "Favourite") then
 			label = PREFERENCES
+		elseif strmatch(name, "Goods") then
+			label = AUCTION_CATEGORY_TRADE_GOODS
 		end
-		if label then B.CreateFS(self, 14, label, true, "TOPLEFT", 5, -8) return end
+		if label then
+			self.label = B.CreateFS(self, 14, label, true, "TOPLEFT", 5, -8)
+			return
+		end
 
 		module.CreateInfoFrame(self)
 
@@ -834,4 +849,17 @@ function module:OnLogin()
 	-- Sort order
 	SetSortBagsRightToLeft(not NDuiDB["Bags"]["ReverseSort"])
 	SetInsertItemsLeftToRight(false)
+
+	-- Shift key alert
+	local function onUpdate(self, elapsed)
+		if IsShiftKeyDown() then
+			self.elapsed = (self.elapsed or 0) + elapsed
+			if self.elapsed > 5 then
+				UIErrorsFrame:AddMessage(DB.InfoColor..L["StupidShiftKey"])
+				self.elapsed = 0
+			end
+		end
+	end
+	local shiftUpdater = CreateFrame("Frame", nil, f.main)
+	shiftUpdater:SetScript("OnUpdate", onUpdate)
 end

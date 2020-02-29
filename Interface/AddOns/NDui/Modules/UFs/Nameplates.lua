@@ -44,8 +44,9 @@ function UF:UpdatePlateSpacing()
 end
 
 function UF:UpdateClickableSize()
-	C_NamePlate.SetNamePlateEnemySize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"]+40)
-	C_NamePlate.SetNamePlateFriendlySize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"]+40)
+	if InCombatLockdown() then return end
+	C_NamePlate.SetNamePlateEnemySize(NDuiDB["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], NDuiDB["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
+	C_NamePlate.SetNamePlateFriendlySize(NDuiDB["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], NDuiDB["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
 end
 
 function UF:SetupCVars()
@@ -308,7 +309,7 @@ function UF:AddTargetIndicator(self)
 	frame.RightArrow:SetPoint("LEFT", frame, "RIGHT", 3, 0)
 	frame.RightArrow:SetRotation(rad(-90))
 
-	frame.Glow = B.CreateSD(frame, 4, true)
+	frame.Glow = B.CreateSD(frame, 5, true)
 	frame.Glow:SetOutside(self.Health.backdrop, 5, 5)
 	frame.Glow:SetBackdropBorderColor(1, 1, 1)
 	frame.Glow:SetFrameLevel(0)
@@ -375,7 +376,7 @@ function UF:UpdateQuestUnit(_, unit)
 								isLootQuest = nil
 							elseif progress < 100 then
 								questProgress = progress.."%"
-								break
+								--break -- lower priority on progress
 							end
 						end
 					end
@@ -407,7 +408,7 @@ function UF:AddQuestIcon(self)
 	qicon:SetSize(28, 28)
 	qicon:SetAtlas(DB.questTex)
 	qicon:Hide()
-	local count = B.CreateFS(self, 16, "", nil, "LEFT", 0, 0)
+	local count = B.CreateFS(self, 18, "", nil, "LEFT", 0, 0)
 	count:SetPoint("LEFT", qicon, "RIGHT", -4, 0)
 	count:SetTextColor(.6, .8, 1)
 
@@ -507,9 +508,9 @@ function UF:UpdateExplosives(event, unit)
 
 	local npcID = self.npcID
 	if event == "NAME_PLATE_UNIT_ADDED" and npcID == id then
-		self:SetScale(1.25)
+		self:SetScale(NDuiADB["UIScale"]*1.25)
 	elseif event == "NAME_PLATE_UNIT_REMOVED" then
-		self:SetScale(1)
+		self:SetScale(NDuiADB["UIScale"])
 	end
 end
 
@@ -594,9 +595,9 @@ function UF:AddFollowerXP(self)
 	bar:SetSize(NDuiDB["Nameplate"]["PlateWidth"]*.75, NDuiDB["Nameplate"]["PlateHeight"])
 	bar:SetPoint("TOP", self.Castbar, "BOTTOM", 0, -5)
 	B.CreateSB(bar, false, 0, .7, 1)
-	bar.progressText = B.CreateFS(bar, 12)
+	bar.ProgressText = B.CreateFS(bar, 12)
 
-	self.NazjatarFollowerXP = bar
+	self.WidgetXPBar = bar
 end
 
 -- Interrupt info on castbars
@@ -632,7 +633,7 @@ function UF:CreatePlates()
 	health:SetAllPoints()
 	health:SetStatusBarTexture(DB.normTex)
 	health.backdrop = B.CreateBDFrame(health, nil, true) -- don't mess up with libs
-	B.SmoothBar(health)
+	B:SmoothBar(health)
 
 	self.Health = health
 	self.Health.UpdateColor = UF.UpdateColor
@@ -720,6 +721,9 @@ function UF:PostUpdatePlates(event, unit)
 			guidToPlate[self.unitGUID] = self
 		end
 		self.npcID = B.GetNPCID(self.unitGUID)
+
+		local blizzPlate = self:GetParent().UnitFrame
+		self.widget = blizzPlate.WidgetContainer
 	elseif event == "NAME_PLATE_UNIT_REMOVED" then
 		if self.unitGUID then
 			guidToPlate[self.unitGUID] = nil
@@ -773,6 +777,9 @@ function UF:ResizePlayerPlate()
 			for i = 1, 5 do
 				plate.bu[i]:SetSize(NDuiDB["Nameplate"]["PPIconSize"], NDuiDB["Nameplate"]["PPIconSize"])
 			end
+		end
+		if plate.dices then
+			plate.dices[1]:SetPoint("BOTTOMLEFT", plate.Health, "TOPLEFT", 0, 8 + plate.Health:GetHeight())
 		end
 	end
 end
