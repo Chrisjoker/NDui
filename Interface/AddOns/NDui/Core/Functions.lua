@@ -881,19 +881,19 @@ end
 -- Role Icons
 function B:GetRoleTexCoord()
 	if self == "TANK" then
-		return .32/9.03, 2.04/9.03, 2.65/9.03, 4.3/9.03
+		return .34/9.03, 2.86/9.03, 3.16/9.03, 5.68/9.03
 	elseif self == "DPS" or self == "DAMAGER" then
-		return 2.68/9.03, 4.4/9.03, 2.65/9.03, 4.34/9.03
+		return 3.26/9.03, 5.78/9.03, 3.16/9.03, 5.68/9.03
 	elseif self == "HEALER" then
-		return 2.68/9.03, 4.4/9.03, .28/9.03, 1.98/9.03
+		return 3.26/9.03, 5.78/9.03, .28/9.03, 2.78/9.03
 	elseif self == "LEADER" then
-		return .32/9.03, 2.04/9.03, .28/9.03, 1.98/9.03
+		return .34/9.03, 2.86/9.03, .28/9.03, 2.78/9.03
 	elseif self == "READY" then
-		return 5.1/9.03, 6.76/9.03, .28/9.03, 1.98/9.03
+		return 6.17/9.03, 8.75/9.03, .28/9.03, 2.78/9.03
 	elseif self == "PENDING" then
-		return 5.1/9.03, 6.76/9.03, 2.65/9.03, 4.34/9.03
+		return 6.17/9.03, 8.75/9.03, 3.16/9.03, 5.68/9.03
 	elseif self == "REFUSE" then
-		return 2.68/9.03, 4.4/9.03, 5.02/9.03, 6.7/9.03
+		return 3.26/9.03, 5.78/9.03, 6.03/9.03, 8.61/9.03
 	end
 end
 
@@ -1152,6 +1152,7 @@ local enchantString = gsub(ENCHANTED_TOOLTIP_LINE, "%%s", "(.+)")
 local essenceTextureID = 2975691
 local essenceDescription = GetSpellDescription(277253)
 local ITEM_SPELL_TRIGGER_ONEQUIP = ITEM_SPELL_TRIGGER_ONEQUIP
+local RETRIEVING_ITEM_INFO = RETRIEVING_ITEM_INFO
 local tip = CreateFrame("GameTooltip", "NDui_iLvlTooltip", nil, "GameTooltipTemplate")
 
 function B:InspectItemTextures()
@@ -1239,8 +1240,12 @@ function B.GetItemLevel(link, arg1, arg2, fullScan)
 			local line = _G[tip:GetName().."TextLeft"..i]
 			if line then
 				local text = line:GetText() or ""
-				B:InspectItemInfo(text, slotInfo)
-				B:CollectEssenceInfo(i, text, slotInfo)
+				if i == 1 and text == RETRIEVING_ITEM_INFO then
+					return "tooSoon"
+				else
+					B:InspectItemInfo(text, slotInfo)
+					B:CollectEssenceInfo(i, text, slotInfo)
+				end
 			end
 		end
 
@@ -1255,6 +1260,11 @@ function B.GetItemLevel(link, arg1, arg2, fullScan)
 			tip:SetBagItem(arg1, arg2)
 		else
 			tip:SetHyperlink(link)
+		end
+
+		local firstLine = _G.NDui_iLvlTooltipTextLeft1:GetText()
+		if firstLine == RETRIEVING_ITEM_INFO then
+			return "tooSoon"
 		end
 
 		for i = 2, 5 do

@@ -146,6 +146,7 @@ local PetBattleFrameHider = CreateFrame("Frame", nil, UIParent, "SecureHandlerSt
 PetBattleFrameHider:SetAllPoints()
 PetBattleFrameHider:SetFrameStrata("LOW")
 RegisterStateDriver(PetBattleFrameHider, "visibility", "[petbattle] hide; show")
+A.PetBattleFrameHider = PetBattleFrameHider
 
 local function tooltipOnEnter(self)
 	GameTooltip:ClearLines()
@@ -712,3 +713,21 @@ SlashCmdList.AuraWatch = function(msg)
 		end
 	end
 end
+
+-- Gift of the Titans
+local hasTitan
+function A:AuraWatch_OnUnitAura()
+	for i = 1, 40 do
+		local name, _, _, _, _, expires, _, _, _, spellID = UnitBuff("player", i)
+		if not name then break end
+		if spellID == 313698 then
+			if not hasTitan then
+				A:AuraWatch_SetupInt(313698, nil, expires-GetTime()+60, "player")
+			end
+			hasTitan = true
+			return
+		end
+	end
+	hasTitan = false
+end
+B:RegisterEvent("UNIT_AURA", A.AuraWatch_OnUnitAura, "player")
