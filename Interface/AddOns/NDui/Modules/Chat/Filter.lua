@@ -9,16 +9,22 @@ local IsGuildMember, C_FriendList_IsFriend, IsGUIDInGroup, C_Timer_After = IsGui
 local Ambiguate, UnitIsUnit, GetTime, SetCVar = Ambiguate, UnitIsUnit, GetTime, SetCVar
 local GetItemInfo, GetItemStats = GetItemInfo, GetItemStats
 local C_BattleNet_GetGameAccountInfoByGUID = C_BattleNet.GetGameAccountInfoByGUID
+local IsCorruptedItem = IsCorruptedItem
 
 local LE_ITEM_CLASS_WEAPON, LE_ITEM_CLASS_ARMOR = LE_ITEM_CLASS_WEAPON, LE_ITEM_CLASS_ARMOR
 local BN_TOAST_TYPE_CLUB_INVITATION = BN_TOAST_TYPE_CLUB_INVITATION or 6
 
 -- Filter Chat symbols
-local msgSymbols = {"`", "～", "＠", "＃", "^", "＊", "！", "？", "。", "|", " ", "—", "——", "￥", "’", "‘", "“", "”", "【", "】", "『", "』", "《", "》", "〈", "〉", "（", "）", "〔", "〕", "、", "，", "：", ",", "_", "/", "~", "%-", "%."}
+local msgSymbols = {"`", "～", "＠", "＃", "^", "＊", "！", "？", "。", "|", " ", "—", "——", "￥", "’", "‘", "“", "”", "【", "】", "『", "』", "《", "》", "〈", "〉", "（", "）", "〔", "〕", "、", "，", "：", ",", "_", "/", "~"}
 
 local FilterList = {}
 function module:UpdateFilterList()
 	B.SplitList(FilterList, NDuiADB["ChatFilterList"], true)
+end
+
+local WhiteFilterList = {}
+function module:UpdateFilterWhiteList()
+	B.SplitList(WhiteFilterList, NDuiADB["ChatFilterWhiteList"], true)
 end
 
 -- ECF strings compare
@@ -63,6 +69,23 @@ function module:GetFilterResult(event, msg, name, flag, guid)
 		filterMsg = gsub(filterMsg, symbol, "")
 	end
 
+	if event == "CHAT_MSG_CHANNEL" then
+		local matches = 0
+		local found
+		for keyword in pairs(WhiteFilterList) do
+			if keyword ~= "" then
+				found = true
+				local _, count = gsub(filterMsg, keyword, "")
+				if count > 0 then
+					matches = matches + 1
+				end
+			end
+		end
+		if matches == 0 and found then
+			return 0
+		end
+	end
+
 	local matches = 0
 	for keyword in pairs(FilterList) do
 		if keyword ~= "" then
@@ -96,7 +119,7 @@ function module:GetFilterResult(event, msg, name, flag, guid)
 end
 
 function module:UpdateChatFilter(event, msg, author, _, _, _, flag, _, _, _, _, lineID, guid)
-	if lineID == 0 or lineID ~= prevLineID then
+	if lineID ~= prevLineID then
 		prevLineID = lineID
 
 		local name = Ambiguate(author, "none")
@@ -175,6 +198,10 @@ local function isItemHasGem(link)
 	return ""
 end
 
+local function isItemCorrupted(link)
+	return IsCorruptedItem(link) and "|T3004126:0:0:0:0:64:64:5:59:5:59|t" or ""
+end
+
 local itemCache = {}
 local function convertItemLevel(link)
 	if itemCache[link] then return itemCache[link] end
@@ -183,7 +210,7 @@ local function convertItemLevel(link)
 	if itemLink then
 		local name, itemLevel = isItemHasLevel(itemLink)
 		if name and itemLevel then
-			link = gsub(link, "|h%[(.-)%]|h", "|h["..name.."("..itemLevel..isItemHasGem(itemLink)..")]|h")
+			link = gsub(link, "|h%[(.-)%]|h", "|h["..name.."("..itemLevel..")]|h"..isItemCorrupted(itemLink)..isItemHasGem(itemLink))
 			itemCache[link] = link
 		end
 	end
@@ -215,6 +242,7 @@ end
 function module:ChatFilter()
 	if NDuiDB["Chat"]["EnableFilter"] then
 		self:UpdateFilterList()
+		self:UpdateFilterWhiteList()
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", self.UpdateChatFilter)
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", self.UpdateChatFilter)
 		ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", self.UpdateChatFilter)

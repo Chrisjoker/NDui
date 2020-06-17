@@ -359,6 +359,7 @@ function TT:ReskinTooltip()
 		self:DisableDrawLayer("BACKGROUND")
 		self.bg = B.CreateBDFrame(self, .7, true)
 		self.bg:SetInside(self)
+		self.bg:SetFrameLevel(self:GetFrameLevel())
 		B.CreateTex(self.bg)
 
 		-- other gametooltip-like support
@@ -384,22 +385,44 @@ function TT:ReskinTooltip()
 			end
 		end
 	end
-
-	if self.NumLines and self:NumLines() > 0 then
-		for index = 1, self:NumLines() do
-			if index == 1 then
-				_G[self:GetName().."TextLeft"..index]:SetFont(DB.TipFont[1], DB.TipFont[2] + 2, DB.TipFont[3])
-			else
-				_G[self:GetName().."TextLeft"..index]:SetFont(unpack(DB.TipFont))
-			end
-			_G[self:GetName().."TextRight"..index]:SetFont(unpack(DB.TipFont))
-		end
-	end
 end
 
 function TT:GameTooltip_SetBackdropStyle()
 	if not self.tipStyled then return end
 	self:SetBackdrop(nil)
+end
+
+local function TooltipSetFont(font, size)
+	font:SetFont(DB.Font[1], size, DB.Font[3])
+	font:SetShadowColor(0, 0, 0, 0)
+end
+
+function TT:SetupTooltipFonts()
+	local textSize = DB.Font[2] + 2
+	local headerSize = DB.Font[2] + 4
+
+	TooltipSetFont(GameTooltipHeaderText, headerSize)
+	TooltipSetFont(GameTooltipText, textSize)
+	TooltipSetFont(GameTooltipTextSmall, textSize)
+
+	if GameTooltip.hasMoney then
+		for i = 1, GameTooltip.numMoneyFrames do
+			TooltipSetFont(_G["GameTooltipMoneyFrame"..i.."PrefixText"], textSize)
+			TooltipSetFont(_G["GameTooltipMoneyFrame"..i.."SuffixText"], textSize)
+			TooltipSetFont(_G["GameTooltipMoneyFrame"..i.."GoldButtonText"], textSize)
+			TooltipSetFont(_G["GameTooltipMoneyFrame"..i.."SilverButtonText"], textSize)
+			TooltipSetFont(_G["GameTooltipMoneyFrame"..i.."CopperButtonText"], textSize)
+		end
+	end
+
+	for _, tt in ipairs(GameTooltip.shoppingTooltips) do
+		for i = 1, tt:GetNumRegions() do
+			local region = select(i, tt:GetRegions())
+			if region:IsObjectType("FontString") then
+				TooltipSetFont(region, textSize)
+			end
+		end
+	end
 end
 
 function TT:OnLogin()
@@ -414,6 +437,7 @@ function TT:OnLogin()
 	hooksecurefunc("GameTooltip_AnchorComparisonTooltips", self.GameTooltip_ComparisonFix)
 
 	-- Elements
+	self:SetupTooltipFonts()
 	self:ReskinTooltipIcons()
 	self:SetupTooltipID()
 	self:TargetedInfo()
@@ -524,6 +548,10 @@ TT:RegisterTooltips("NDui", function()
 
 	-- Others
 	C_Timer.After(5, function()
+		-- BagSync
+		if BSYC_EventAlertTooltip then
+			TT.ReskinTooltip(BSYC_EventAlertTooltip)
+		end
 		-- Lib minimap icon
 		if LibDBIconTooltip then
 			TT.ReskinTooltip(LibDBIconTooltip)

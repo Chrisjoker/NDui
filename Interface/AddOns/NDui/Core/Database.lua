@@ -44,7 +44,6 @@ DB.QualityColors[LE_ITEM_QUALITY_COMMON] = {r = 0, g = 0, b = 0}
 
 -- Fonts
 DB.Font = {STANDARD_TEXT_FONT, 12, "OUTLINE"}
-DB.TipFont = {GameTooltipText:GetFont(), 14, "OUTLINE"}
 DB.LineString = DB.GreyColor.."---------------"
 
 -- Textures
@@ -55,9 +54,11 @@ DB.normTex = Media.."normTex"
 DB.gradTex = Media.."gradTex"
 DB.flatTex = Media.."flatTex"
 DB.bgTex = Media.."bgTex"
-DB.MicroTex = Media.."Hutu\\"
 DB.arrowTex = Media.."NeonRedArrow"
+DB.MicroTex = Media.."Hutu\\Menu\\"
 DB.rolesTex = Media.."Hutu\\RoleIcons"
+DB.chatLogo = Media.."Hutu\\logoSmall"
+DB.logoTex = Media.."Hutu\\logo"
 DB.arrowUp = Media.."arrow-up-active"
 DB.arrowDown = Media.."arrow-down-active"
 DB.arrowLeft = Media.."arrow-left-active"
@@ -78,7 +79,6 @@ DB.textures = {
 	normal		= Media.."ActionBar\\gloss",
 	flash		= Media.."ActionBar\\flash",
 	pushed		= Media.."ActionBar\\pushed",
-	checked		= Media.."ActionBar\\checked",
 }
 DB.LeftButton = " |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:13:11:0:-1:512:512:12:66:230:307|t "
 DB.RightButton = " |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:13:11:0:-1:512:512:12:66:333:411|t "

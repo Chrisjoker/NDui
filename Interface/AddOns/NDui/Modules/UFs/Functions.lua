@@ -456,13 +456,13 @@ function UF:CreateCastBar(self)
 			self:RegisterEvent("CURRENT_SPELL_CAST_CHANGED", B.OnCastSent, true)
 		end
 	elseif mystyle == "nameplate" then
-		name:SetPoint("LEFT", cb, 0, -5)
-		timer:SetPoint("RIGHT", cb, 0, -5)
+		name:SetPoint("TOPLEFT", cb, "LEFT", 0, -1)
+		timer:SetPoint("TOPRIGHT", cb, "RIGHT", 0, -1)
 
 		local shield = cb:CreateTexture(nil, "OVERLAY")
 		shield:SetAtlas("nameplates-InterruptShield")
 		shield:SetSize(18, 18)
-		shield:SetPoint("CENTER", 0, -5)
+		shield:SetPoint("TOP", cb, "CENTER", 0, -1)
 		cb.Shield = shield
 
 		local iconSize = self:GetHeight()*2 + 5
@@ -1172,4 +1172,26 @@ function UF:CreatePVPClassify(self)
 	bu:SetPoint("LEFT", self, "RIGHT", 5, -2)
 
 	self.PvPClassificationIndicator = bu
+end
+
+local function updatePartySync(self)
+	local hasJoined = C_QuestSession.HasJoined()
+	if(hasJoined) then
+		self.QuestSyncIndicator:Show()
+	else
+		self.QuestSyncIndicator:Hide()
+	end
+end
+
+function UF:CreateQuestSync(self)
+	local sync = self:CreateTexture(nil, "OVERLAY")
+	sync:SetPoint("CENTER", self, "BOTTOMLEFT", 16, 0)
+	sync:SetSize(28, 28)
+	sync:SetAtlas("QuestSharing-DialogIcon")
+	sync:Hide()
+
+	self.QuestSyncIndicator = sync
+	self:RegisterEvent("QUEST_SESSION_LEFT", updatePartySync, true)
+	self:RegisterEvent("QUEST_SESSION_JOINED", updatePartySync, true)
+	self:RegisterEvent("PLAYER_ENTERING_WORLD", updatePartySync, true)
 end

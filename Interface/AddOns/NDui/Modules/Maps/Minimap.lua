@@ -116,7 +116,7 @@ function module:ReskinRegions()
 
 	local Invt = CreateFrame("Button", nil, UIParent)
 	Invt:SetPoint("TOPRIGHT", Minimap, "BOTTOMLEFT", -20, -20)
-	Invt:SetSize(300, 80)
+	Invt:SetSize(250, 80)
 	Invt:Hide()
 	B.SetBD(Invt)
 	B.CreateFS(Invt, 16, DB.InfoColor..GAMETIME_TOOLTIP_CALENDAR_INVITES)
@@ -321,9 +321,14 @@ function module:WhoPingsMyMap()
 end
 
 function module:UpdateMinimapScale()
-	local scale = NDuiDB["Map"]["MinmapScale"]
+	local size = Minimap:GetWidth()
+	local scale = NDuiDB["Map"]["MinimapScale"]
 	Minimap:SetScale(scale)
-	Minimap.mover:SetSize(Minimap:GetWidth()*scale, Minimap:GetHeight()*scale)
+	Minimap.mover:SetSize(size*scale, size*scale)
+	-- Other elements
+	if _G.NDuiMinimapDataBar then
+		_G.NDuiMinimapDataBar:SetWidth((size-10)*scale)
+	end
 end
 
 function module:ShowMinimapClock()

@@ -211,79 +211,6 @@ function module:CreateSortButton(name)
 	return bu
 end
 
-local deleteEnable
-function module:CreateDeleteButton()
-	local enabledText = DB.InfoColor..L["DeleteMode Enabled"]
-
-	local bu = B.CreateButton(self, 24, 24, true, "Interface\\Buttons\\UI-GroupLoot-Pass-Up")
-	bu.Icon:SetPoint("TOPLEFT", 3, -2)
-	bu.Icon:SetPoint("BOTTOMRIGHT", -1, 2)
-	bu:SetScript("OnClick", function(self)
-		deleteEnable = not deleteEnable
-		if deleteEnable then
-			self:SetBackdropBorderColor(1, .8, 0)
-			self.text = enabledText
-		else
-			self:SetBackdropBorderColor(0, 0, 0)
-			self.text = nil
-		end
-		self:GetScript("OnEnter")(self)
-	end)
-	bu.title = L["ItemDeleteMode"]
-	B.AddTooltip(bu, "ANCHOR_TOP")
-
-	return bu
-end
-
-local function deleteButtonOnClick(self)
-	if not deleteEnable then return end
-
-	local texture, _, _, quality = GetContainerItemInfo(self.bagID, self.slotID)
-	if IsControlKeyDown() and IsAltKeyDown() and texture and (quality < LE_ITEM_QUALITY_RARE or quality == LE_ITEM_QUALITY_HEIRLOOM) then
-		PickupContainerItem(self.bagID, self.slotID)
-		DeleteCursorItem()
-	end
-end
-
-local favouriteEnable
-function module:CreateFavouriteButton()
-	local enabledText = DB.InfoColor..L["FavouriteMode Enabled"]
-
-	local bu = B.CreateButton(self, 24, 24, true, "Interface\\Common\\friendship-heart")
-	bu.Icon:SetPoint("TOPLEFT", -5, 0)
-	bu.Icon:SetPoint("BOTTOMRIGHT", 5, -5)
-	bu:SetScript("OnClick", function(self)
-		favouriteEnable = not favouriteEnable
-		if favouriteEnable then
-			self:SetBackdropBorderColor(1, .8, 0)
-			self.text = enabledText
-		else
-			self:SetBackdropBorderColor(0, 0, 0)
-			self.text = nil
-		end
-		self:GetScript("OnEnter")(self)
-	end)
-	bu.title = L["FavouriteMode"]
-	B.AddTooltip(bu, "ANCHOR_TOP")
-
-	return bu
-end
-
-local function favouriteOnClick(self)
-	if not favouriteEnable then return end
-
-	local texture, _, _, quality, _, _, _, _, _, itemID = GetContainerItemInfo(self.bagID, self.slotID)
-	if texture and quality > LE_ITEM_QUALITY_POOR then
-		if NDuiDB["Bags"]["FavouriteItems"][itemID] then
-			NDuiDB["Bags"]["FavouriteItems"][itemID] = nil
-		else
-			NDuiDB["Bags"]["FavouriteItems"][itemID] = true
-		end
-		ClearCursor()
-		module:UpdateAllBags()
-	end
-end
-
 function module:GetContainerEmptySlot(bagID)
 	for slotID = 1, GetContainerNumSlots(bagID) do
 		if not GetContainerItemID(bagID, slotID) then
@@ -357,6 +284,15 @@ function module:CreateFreeSlots()
 	self.freeSlot = slot
 end
 
+local toggleButtons = {}
+function module:SelectToggleButton(id)
+	for index, button in pairs(toggleButtons) do
+		if index ~= id then
+			button.__turnOff()
+		end
+	end
+end
+
 local splitEnable
 local function saveSplitCount(self)
 	local count = self:GetText() or ""
@@ -380,7 +316,14 @@ function module:CreateSplitButton()
 	local bu = B.CreateButton(self, 24, 24, true, "Interface\\HELPFRAME\\ReportLagIcon-AuctionHouse")
 	bu.Icon:SetPoint("TOPLEFT", -1, 3)
 	bu.Icon:SetPoint("BOTTOMRIGHT", 1, -3)
+	bu.__turnOff = function()
+		bu:SetBackdropBorderColor(0, 0, 0)
+		bu.text = nil
+		splitFrame:Hide()
+		splitEnable = nil
+	end
 	bu:SetScript("OnClick", function(self)
+		module:SelectToggleButton(1)
 		splitEnable = not splitEnable
 		if splitEnable then
 			self:SetBackdropBorderColor(1, .8, 0)
@@ -388,14 +331,15 @@ function module:CreateSplitButton()
 			splitFrame:Show()
 			editbox:SetText(NDuiDB["Bags"]["SplitCount"])
 		else
-			self:SetBackdropBorderColor(0, 0, 0)
-			self.text = nil
-			splitFrame:Hide()
+			self.__turnOff()
 		end
 		self:GetScript("OnEnter")(self)
 	end)
+	bu:SetScript("OnHide", bu.__turnOff)
 	bu.title = L["QuickSplit"]
 	B.AddTooltip(bu, "ANCHOR_TOP")
+
+	toggleButtons[1] = bu
 
 	return bu
 end
@@ -416,11 +360,150 @@ local function splitOnClick(self)
 	end
 end
 
+local favouriteEnable
+function module:CreateFavouriteButton()
+	local enabledText = DB.InfoColor..L["FavouriteMode Enabled"]
+
+	local bu = B.CreateButton(self, 24, 24, true, "Interface\\Common\\friendship-heart")
+	bu.Icon:SetPoint("TOPLEFT", -5, 0)
+	bu.Icon:SetPoint("BOTTOMRIGHT", 5, -5)
+	bu.__turnOff = function()
+		bu:SetBackdropBorderColor(0, 0, 0)
+		bu.text = nil
+		favouriteEnable = nil
+	end
+	bu:SetScript("OnClick", function(self)
+		module:SelectToggleButton(2)
+		favouriteEnable = not favouriteEnable
+		if favouriteEnable then
+			self:SetBackdropBorderColor(1, .8, 0)
+			self.text = enabledText
+		else
+			self.__turnOff()
+		end
+		self:GetScript("OnEnter")(self)
+	end)
+	bu:SetScript("OnHide", bu.__turnOff)
+	bu.title = L["FavouriteMode"]
+	B.AddTooltip(bu, "ANCHOR_TOP")
+
+	toggleButtons[2] = bu
+
+	return bu
+end
+
+local function favouriteOnClick(self)
+	if not favouriteEnable then return end
+
+	local texture, _, _, quality, _, _, _, _, _, itemID = GetContainerItemInfo(self.bagID, self.slotID)
+	if texture and quality > LE_ITEM_QUALITY_POOR then
+		if NDuiDB["Bags"]["FavouriteItems"][itemID] then
+			NDuiDB["Bags"]["FavouriteItems"][itemID] = nil
+		else
+			NDuiDB["Bags"]["FavouriteItems"][itemID] = true
+		end
+		ClearCursor()
+		module:UpdateAllBags()
+	end
+end
+
+local customJunkEnable
+function module:CreateJunkButton()
+	local enabledText = DB.InfoColor..L["JunkMode Enabled"]
+
+	local bu = B.CreateButton(self, 24, 24, true, "Interface\\BUTTONS\\UI-GroupLoot-Coin-Up")
+	bu.Icon:SetPoint("TOPLEFT", C.mult, -3)
+	bu.Icon:SetPoint("BOTTOMRIGHT", -C.mult, -3)
+	bu.__turnOff = function()
+		bu:SetBackdropBorderColor(0, 0, 0)
+		bu.text = nil
+		customJunkEnable = nil
+	end
+	bu:SetScript("OnClick", function(self)
+		module:SelectToggleButton(3)
+		customJunkEnable = not customJunkEnable
+		if customJunkEnable then
+			self:SetBackdropBorderColor(1, .8, 0)
+			self.text = enabledText
+		else
+			bu.__turnOff()
+		end
+		self:GetScript("OnEnter")(self)
+		module:UpdateAllBags()
+	end)
+	bu:SetScript("OnHide", bu.__turnOff)
+	bu.title = L["CustomJunkMode"]
+	B.AddTooltip(bu, "ANCHOR_TOP")
+
+	toggleButtons[3] = bu
+
+	return bu
+end
+
+local function customJunkOnClick(self)
+	if not customJunkEnable then return end
+
+	local texture, _, _, _, _, _, _, _, _, itemID = GetContainerItemInfo(self.bagID, self.slotID)
+	local price = select(11, GetItemInfo(itemID))
+	if texture and price > 0 then
+		if NDuiADB["CustomJunkList"][itemID] then
+			NDuiADB["CustomJunkList"][itemID] = nil
+		else
+			NDuiADB["CustomJunkList"][itemID] = true
+		end
+		ClearCursor()
+		module:UpdateAllBags()
+	end
+end
+
+local deleteEnable
+function module:CreateDeleteButton()
+	local enabledText = DB.InfoColor..L["DeleteMode Enabled"]
+
+	local bu = B.CreateButton(self, 24, 24, true, "Interface\\Buttons\\UI-GroupLoot-Pass-Up")
+	bu.Icon:SetPoint("TOPLEFT", 3, -2)
+	bu.Icon:SetPoint("BOTTOMRIGHT", -1, 2)
+	bu.__turnOff = function()
+		bu:SetBackdropBorderColor(0, 0, 0)
+		bu.text = nil
+		deleteEnable = nil
+	end
+	bu:SetScript("OnClick", function(self)
+		module:SelectToggleButton(4)
+		deleteEnable = not deleteEnable
+		if deleteEnable then
+			self:SetBackdropBorderColor(1, .8, 0)
+			self.text = enabledText
+		else
+			bu.__turnOff()
+		end
+		self:GetScript("OnEnter")(self)
+	end)
+	bu:SetScript("OnHide", bu.__turnOff)
+	bu.title = L["ItemDeleteMode"]
+	B.AddTooltip(bu, "ANCHOR_TOP")
+
+	toggleButtons[4] = bu
+
+	return bu
+end
+
+local function deleteButtonOnClick(self)
+	if not deleteEnable then return end
+
+	local texture, _, _, quality = GetContainerItemInfo(self.bagID, self.slotID)
+	if IsControlKeyDown() and IsAltKeyDown() and texture and (quality < LE_ITEM_QUALITY_RARE or quality == LE_ITEM_QUALITY_HEIRLOOM) then
+		PickupContainerItem(self.bagID, self.slotID)
+		DeleteCursorItem()
+	end
+end
+
 function module:ButtonOnClick(btn)
 	if btn ~= "LeftButton" then return end
-	deleteButtonOnClick(self)
-	favouriteOnClick(self)
 	splitOnClick(self)
+	favouriteOnClick(self)
+	customJunkOnClick(self)
+	deleteButtonOnClick(self)
 end
 
 function module:UpdateAllBags()
@@ -625,7 +708,7 @@ function module:OnLogin()
 			end
 		end
 
-		if MerchantFrame:IsShown() and item.rarity == LE_ITEM_QUALITY_POOR and item.sellPrice > 0 then
+		if (MerchantFrame:IsShown() or customJunkEnable) and (item.rarity == LE_ITEM_QUALITY_POOR or NDuiADB["CustomJunkList"][item.id]) and item.sellPrice > 0 then
 			self.junkIcon:SetAlpha(1)
 		else
 			self.junkIcon:SetAlpha(0)
@@ -778,7 +861,8 @@ function module:OnLogin()
 			buttons[3] = module.CreateBagToggle(self)
 			buttons[5] = module.CreateSplitButton(self)
 			buttons[6] = module.CreateFavouriteButton(self)
-			if deleteButton then buttons[7] = module.CreateDeleteButton(self) end
+			buttons[7] = module.CreateJunkButton(self)
+			if deleteButton then buttons[8] = module.CreateDeleteButton(self) end
 		elseif name == "Bank" then
 			module.CreateBagBar(self, settings, 7)
 			buttons[2] = module.CreateReagentButton(self, f)

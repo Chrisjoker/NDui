@@ -27,6 +27,16 @@ function module:UpdateChatSize()
 	if isScaling then return end
 	isScaling = true
 
+	if ChatFrame1:IsMovable() then
+		ChatFrame1:SetUserPlaced(true)
+	end
+	if ChatFrame1.FontStringContainer then
+		ChatFrame1.FontStringContainer:SetOutside(ChatFrame1)
+	end
+	if ChatFrame1:IsShown() then
+		ChatFrame1:Hide()
+		ChatFrame1:Show()
+	end
 	ChatFrame1:ClearAllPoints()
 	ChatFrame1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 28)
 	ChatFrame1:SetWidth(NDuiDB["Chat"]["ChatWidth"])
@@ -35,6 +45,7 @@ function module:UpdateChatSize()
 	if bg then
 		bg:SetHeight(NDuiDB["Chat"]["ChatHeight"] + 30)
 	end
+
 	isScaling = false
 end
 
@@ -79,7 +90,7 @@ function module:SkinChat()
 	B.StripTextures(tab, 7)
 	hooksecurefunc(tab, "SetAlpha", module.TabSetAlpha)
 
-	if NDuiDB["Chat"]["Lock"] then B.StripTextures(self) end
+	--if NDuiDB["Chat"]["Lock"] then B.StripTextures(self) end
 	B.HideObject(self.buttonFrame)
 	B.HideObject(self.ScrollBar)
 	B.HideObject(self.ScrollToBottomButton)
@@ -199,21 +210,11 @@ function module.OnChatWhisper(event, ...)
 	end
 end
 
-function module:WhipserInvite()
+function module:WhisperInvite()
 	if not NDuiDB["Chat"]["Invite"] then return end
 	self:UpdateWhisperList()
 	B:RegisterEvent("CHAT_MSG_WHISPER", module.OnChatWhisper)
 	B:RegisterEvent("CHAT_MSG_BN_WHISPER", module.OnChatWhisper)
-end
-
--- Timestamp
-function module:UpdateTimestamp()
-	local greyStamp = DB.GreyColor.."[%H:%M:%S]|r "
-	if NDuiADB["Timestamp"] then
-		SetCVar("showTimestamps", greyStamp)
-	elseif GetCVar("showTimestamps") == greyStamp then
-		SetCVar("showTimestamps", "none")
-	end
 end
 
 -- Sticky whisper
@@ -286,14 +287,13 @@ function module:OnLogin()
 	CombatLogQuickButtonFrame_CustomTexture:SetTexture(nil)
 
 	-- Add Elements
-	self:UpdateTimestamp()
 	self:ChatWhisperSticky()
 	self:ChatFilter()
 	self:ChannelRename()
 	self:Chatbar()
 	self:ChatCopy()
 	self:UrlCopy()
-	self:WhipserInvite()
+	self:WhisperInvite()
 	self:ChatFrameBackground()
 
 	-- Lock chatframe
@@ -305,9 +305,12 @@ function module:OnLogin()
 
 	-- ProfanityFilter
 	if not BNFeaturesEnabledAndConnected() then return end
-	if not NDuiDB["Chat"]["Freedom"] then
-		SetCVar("profanityFilter", 1)
-	else
+	if NDuiDB["Chat"]["Freedom"] then
+		if GetCVar("portal") == "CN" then
+			ConsoleExec("portal TW")
+		end
 		SetCVar("profanityFilter", 0)
+	else
+		SetCVar("profanityFilter", 1)
 	end
 end

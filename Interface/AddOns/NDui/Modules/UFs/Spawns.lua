@@ -28,6 +28,7 @@ local function CreatePlayerStyle(self)
 	UF:CreatePrediction(self)
 	UF:CreateFCT(self)
 	UF:CreateAddPower(self)
+	UF:CreateQuestSync(self)
 
 	if NDuiDB["UFs"]["Castbars"] then
 		UF:ReskinMirrorBars()
@@ -303,6 +304,8 @@ function UF:OnLogin()
 
 		-- Group Styles
 		if showPartyFrame then
+			UF:SyncWithZenTracker()
+
 			oUF:RegisterStyle("Party", CreatePartyStyle)
 			oUF:SetActiveStyle("Party")
 
@@ -368,10 +371,8 @@ function UF:OnLogin()
 
 		local raidMover
 		if NDuiDB["UFs"]["SimpleMode"] then
-			local groupingOrder, groupBy, sortMethod = "1,2,3,4,5,6,7,8", "GROUP", "INDEX"
-			if NDuiDB["UFs"]["SimpleModeSortByRole"] then
-				groupingOrder, groupBy, sortMethod = "TANK,HEALER,DAMAGER,NONE", "ASSIGNEDROLE", "NAME"
-			end
+			local unitsPerColumn = NDuiDB["UFs"]["SMUnitsPerColumn"]
+			local maxColumns = B:Round(numGroups*5 / unitsPerColumn)
 
 			local function CreateGroup(name, i)
 				local group = oUF:SpawnHeader(name, nil, "solo,party,raid",
@@ -382,11 +383,8 @@ function UF:OnLogin()
 				"xoffset", 5,
 				"yOffset", -5,
 				"groupFilter", tostring(i),
-				"groupingOrder", groupingOrder,
-				"groupBy", groupBy,
-				"sortMethod", sortMethod,
-				"maxColumns", 2,
-				"unitsPerColumn", 20,
+				"maxColumns", maxColumns,
+				"unitsPerColumn", unitsPerColumn,
 				"columnSpacing", 5,
 				"point", "TOP",
 				"columnAnchorPoint", "LEFT",
@@ -411,9 +409,22 @@ function UF:OnLogin()
 			end
 
 			local group = CreateGroup("oUF_Raid", groupFilter)
-			local moverWidth = numGroups > 4 and (100*scale*2 + 5) or 100
-			local moverHeight = 20*scale*20 + 10*19
+			local moverWidth = (100*scale*maxColumns + 5*(maxColumns-1))
+			local moverHeight = 20*scale*unitsPerColumn + 5*(unitsPerColumn-1)
 			raidMover = B.Mover(group, L["RaidFrame"], "RaidFrame", {"TOPLEFT", UIParent, 35, -50}, moverWidth, moverHeight)
+
+			local groupByTypes = {
+				[1] = {"1,2,3,4,5,6,7,8", "GROUP", "INDEX"},
+				[2] = {"DEATHKNIGHT,WARRIOR,DEMONHUNTER,ROGUE,MONK,PALADIN,DRUID,SHAMAN,HUNTER,PRIEST,MAGE,WARLOCK", "CLASS", "NAME"},
+				[3] = {"TANK,HEALER,DAMAGER,NONE", "ASSIGNEDROLE", "NAME"},
+			}
+			function UF:UpdateSimpleModeHeader()
+				local groupByIndex = NDuiDB["UFs"]["SMGroupByIndex"]
+				group:SetAttribute("groupingOrder", groupByTypes[groupByIndex][1])
+				group:SetAttribute("groupBy", groupByTypes[groupByIndex][2])
+				group:SetAttribute("sortMethod", groupByTypes[groupByIndex][3])
+			end
+			UF:UpdateSimpleModeHeader()
 		else
 			local raidFrameHeight = raidHeight + NDuiDB["UFs"]["RaidPowerHeight"] + C.mult
 

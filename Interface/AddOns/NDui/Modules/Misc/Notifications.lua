@@ -14,16 +14,6 @@ local C_ChatInfo_SendAddonMessage = C_ChatInfo.SendAddonMessage
 local C_ChatInfo_RegisterAddonMessagePrefix = C_ChatInfo.RegisterAddonMessagePrefix
 local C_MythicPlus_GetCurrentAffixes = C_MythicPlus.GetCurrentAffixes
 
-function M:AddAlerts()
-	self:SoloInfo()
-	self:RareAlert()
-	self:InterruptAlert()
-	self:VersionCheck()
-	self:ExplosiveAlert()
-	self:PlacedItemAlert()
-	self:UunatAlert()
-end
-
 --[[
 	SoloInfo是一个告知你当前副本难度的小工具，防止我有时候单刷时进错难度了。
 	instList左侧是副本ID，你可以使用"/getid"命令来获取当前副本的ID；右侧的是副本难度，常用的一般是：2为5H，4为25普通，6为25H。
@@ -102,7 +92,7 @@ function M:RareAlert_Update(id)
 
 		UIErrorsFrame:AddMessage(DB.InfoColor..L["Rare Found"]..tex..(info.name or ""))
 		if NDuiDB["Misc"]["AlertinChat"] then
-			local currrentTime = "|cff00ff00["..date("%H:%M:%S").."]|r"
+			local currrentTime = NDuiADB["TimestampFormat"] == 1 and "|cff00ff00["..date("%H:%M:%S").."]|r" or ""
 			print(currrentTime.." -> "..DB.InfoColor..L["Rare Found"]..tex..(info.name or ""))
 		end
 		if not NDuiDB["Misc"]["RareAlertInWild"] or instType == "none" then
@@ -224,11 +214,14 @@ end
 --[[
 	NDui版本过期提示
 ]]
+local lastVCTime, isVCInit = 0
 function M:VersionCheck_Compare(new, old)
 	local new1, new2 = strsplit(".", new)
 	new1, new2 = tonumber(new1), tonumber(new2)
+
 	local old1, old2 = strsplit(".", old)
 	old1, old2 = tonumber(old1), tonumber(old2)
+
 	if new1 > old1 or (new1 == old1 and new2 > old2) then
 		return "IsNew"
 	elseif new1 < old1 or (new1 == old1 and new2 < old2) then
@@ -237,25 +230,35 @@ function M:VersionCheck_Compare(new, old)
 end
 
 function M:VersionCheck_Create(text)
+	if not NDuiADB["VersionCheck"] then return end
+
 	local frame = CreateFrame("Frame", nil, nil, "MicroButtonAlertTemplate")
 	frame:SetPoint("BOTTOMLEFT", ChatFrame1, "TOPLEFT", 20, 70)
 	frame.Text:SetText(text)
 	frame:Show()
 end
 
-local hasChecked
-function M:VersionCheck_Initial()
-	if not hasChecked then
-		if M:VersionCheck_Compare(NDuiADB["DetectVersion"], DB.Version) == "IsNew" then
-			local release = gsub(NDuiADB["DetectVersion"], "(%d)$", "0")
+function M:VersionCheck_Init()
+	if not isVCInit then
+		local status = M:VersionCheck_Compare(NDuiADB["DetectVersion"], DB.Version)
+		if status == "IsNew" then
+			local release = gsub(NDuiADB["DetectVersion"], "(%d+)$", "0")
 			M:VersionCheck_Create(format(L["Outdated NDui"], release))
+		elseif status == "IsOld" then
+			NDuiADB["DetectVersion"] = DB.Version
 		end
 
-		hasChecked = true
+		isVCInit = true
 	end
 end
 
-local lastTime = 0
+function M:VersionCheck_Send(channel)
+	if GetTime() - lastVCTime >= 10 then
+		C_ChatInfo_SendAddonMessage("NDuiVersionCheck", NDuiADB["DetectVersion"], channel)
+		lastVCTime = GetTime()
+	end
+end
+
 function M:VersionCheck_Update(...)
 	local prefix, msg, distType, author = ...
 	if prefix ~= "NDuiVersionCheck" then return end
@@ -265,35 +268,28 @@ function M:VersionCheck_Update(...)
 	if status == "IsNew" then
 		NDuiADB["DetectVersion"] = msg
 	elseif status == "IsOld" then
-		if GetTime() - lastTime > 10 then
-			C_ChatInfo_SendAddonMessage("NDuiVersionCheck", NDuiADB["DetectVersion"], distType)
-			lastTime = GetTime()
-		end
+		M:VersionCheck_Send(distType)
 	end
 
-	M:VersionCheck_Initial()
+	M:VersionCheck_Init()
 end
 
-local prevTime = 0
 function M:VersionCheck_UpdateGroup()
-	if not IsInGroup() or (GetTime()-prevTime < 10) then return end
-	prevTime = GetTime()
-	C_ChatInfo_SendAddonMessage("NDuiVersionCheck", DB.Version, msgChannel())
+	if not IsInGroup() then return end
+	M:VersionCheck_Send(msgChannel())
 end
 
 function M:VersionCheck()
-	hasChecked = not NDuiADB["VersionCheck"]
-
-	B:RegisterEvent("CHAT_MSG_ADDON", self.VersionCheck_Update)
-
-	M:VersionCheck_Initial()
+	M:VersionCheck_Init()
 	C_ChatInfo_RegisterAddonMessagePrefix("NDuiVersionCheck")
+	B:RegisterEvent("CHAT_MSG_ADDON", M.VersionCheck_Update)
+
 	if IsInGuild() then
 		C_ChatInfo_SendAddonMessage("NDuiVersionCheck", DB.Version, "GUILD")
+		lastVCTime = GetTime()
 	end
-
-	self:VersionCheck_UpdateGroup()
-	B:RegisterEvent("GROUP_ROSTER_UPDATE", self.VersionCheck_UpdateGroup)
+	M:VersionCheck_UpdateGroup()
+	B:RegisterEvent("GROUP_ROSTER_UPDATE", M.VersionCheck_UpdateGroup)
 end
 
 --[[
@@ -411,49 +407,116 @@ function M:PlacedItemAlert()
 	B:RegisterEvent("GROUP_JOINED", self.ItemAlert_CheckGroup)
 end
 
--- 乌纳特踩圈通报
-function M:UunatAlert_CheckAura()
-	for i = 1, 16 do
-		local name, _, _, _, _, _, _, _, _, spellID = UnitDebuff("player", i)
-		if not name then break end
-		if name and spellID == 284733 then
-			return true
+-- 大幻象水晶及箱子计数
+function M:NVision_Create()
+	if M.VisionFrame then M.VisionFrame:Show() return end
+
+	local frame = CreateFrame("Frame", nil, UIParent)
+	frame:SetSize(24, 24)
+	frame.bars = {}
+
+	local mover = B.Mover(frame, L["NzothVision"], "NzothVision", {"TOP", PlayerPowerBarAlt, "BOTTOM"}, 216, 24)
+	frame:ClearAllPoints()
+	frame:SetPoint("CENTER", mover)
+
+	local barData = {
+		[1] = {
+			anchorF = "RIGHT", anchorT = "LEFT", offset = -3,
+			texture = "Interface\\ICONS\\INV_Misc_Gem_FlameSpessarite_02",
+			color = {1, .8, 0}, reverse = false, maxValue = 10,
+		},
+		[2] = {
+			anchorF = "LEFT", anchorT = "RIGHT", offset = 3,
+			texture = 2000861,
+			color = {.8, 0, 1}, reverse = true, maxValue = 12,
+		}
+	}
+
+	for i, v in ipairs(barData) do
+		local bar = CreateFrame("StatusBar", nil, frame)
+		bar:SetSize(80, 20)
+		bar:SetPoint(v.anchorF, frame, "CENTER", v.offset, 0)
+		bar:SetMinMaxValues(0, v.maxValue)
+		bar:SetValue(0)
+		bar:SetReverseFill(v.reverse)
+		B:SmoothBar(bar)
+		B.CreateSB(bar, nil, unpack(v.color))
+		bar.text = B.CreateFS(bar, 16, "0/"..v.maxValue, nil, "CENTER", 0, 0)
+
+		local icon = CreateFrame("Frame", nil, bar)
+		icon:SetSize(22, 22)
+		icon:SetPoint(v.anchorF, bar, v.anchorT, v.offset, 0)
+		B.PixelIcon(icon, v.texture)
+		B.CreateSD(icon)
+
+		bar.count = 0
+		bar.__max = v.maxValue
+		frame.bars[i] = bar
+	end
+
+	M.VisionFrame = frame
+end
+
+function M:NVision_Update(index, reset)
+	local frame = M.VisionFrame
+	local bar = frame.bars[index]
+	if reset then bar.count = 0 end
+	bar:SetValue(bar.count)
+	bar.text:SetText(bar.count.."/"..bar.__max)
+end
+
+local castSpellIndex = {[143394] = 1, [306608] = 2}
+function M:NVision_OnEvent(unit, _, spellID)
+	local index = castSpellIndex[spellID]
+	if index and (index == 1 or unit == "player") then
+		local frame = M.VisionFrame
+		local bar = frame.bars[index]
+		bar.count = bar.count + 1
+		M:NVision_Update(index)
+	end
+end
+
+function M:NVision_Check()
+	local diffID = select(3, GetInstanceInfo())
+	if diffID == 152 then
+		M:NVision_Create()
+		B:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", M.NVision_OnEvent, "player")
+
+		if not RaidBossEmoteFrame.__isOff then
+			RaidBossEmoteFrame:UnregisterAllEvents()
+			RaidBossEmoteFrame.__isOff = true
+		end
+	else
+		if M.VisionFrame then
+			M:NVision_Update(1, true)
+			M:NVision_Update(2, true)
+			M.VisionFrame:Hide()
+			B:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED", M.NVision_OnEvent)
+		end
+
+		if RaidBossEmoteFrame.__isOff then
+			RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_EMOTE")
+			RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_WHISPER")
+			RaidBossEmoteFrame:RegisterEvent("CLEAR_BOSS_EMOTES")
+			RaidBossEmoteFrame.__isOff = nil
 		end
 	end
 end
 
-local uunatCache = {}
-function M:UunatAlert_Update(...)
-	local _, eventType, _, _, _, _, _, _, destName, _, _, spellID = ...
-	if eventType == "SPELL_DAMAGE" and spellID == 285214 and not M:UunatAlert_CheckAura() then
-		uunatCache[destName] = (uunatCache[destName] or 0) + 1
-		SendChatMessage(format(L["UunatAlertString"], destName, uunatCache[destName]), msgChannel())
-	end
+function M:NVision_Init()
+	if not NDuiDB["Misc"]["NzothVision"] then return end
+	M:NVision_Check()
+	B:RegisterEvent("UPDATE_INSTANCE_INFO", M.NVision_Check)
 end
 
-local function resetCount()
-	wipe(uunatCache)
+-- Init
+function M:AddAlerts()
+	M:SoloInfo()
+	M:RareAlert()
+	M:InterruptAlert()
+	M:VersionCheck()
+	M:ExplosiveAlert()
+	M:PlacedItemAlert()
+	M:NVision_Init()
 end
-
-function M:UunatAlert_CheckInstance()
-	local instID = select(8, GetInstanceInfo())
-	if instID == 2096 then
-		B:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", M.UunatAlert_Update)
-		B:RegisterEvent("ENCOUNTER_END", resetCount)
-	else
-		B:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED", M.UunatAlert_Update)
-		B:UnregisterEvent("ENCOUNTER_END", resetCount)
-	end
-end
-
-function M:UunatAlert()
-	if NDuiDB["Misc"]["UunatAlert"] then
-		self:UunatAlert_CheckInstance()
-		B:RegisterEvent("UPDATE_INSTANCE_INFO", self.UunatAlert_CheckInstance)
-	else
-		wipe(uunatCache)
-		B:UnregisterEvent("UPDATE_INSTANCE_INFO", self.UunatAlert_CheckInstance)
-		B:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED", self.UunatAlert_Update)
-		B:UnregisterEvent("ENCOUNTER_END", resetCount)
-	end
-end
+M:RegisterMisc("Notifications", M.AddAlerts)

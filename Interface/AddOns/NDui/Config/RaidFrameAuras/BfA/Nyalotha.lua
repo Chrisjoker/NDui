@@ -13,7 +13,6 @@ module:RegisterDebuff(TIER, INSTANCE, BOSS, 313959) -- 灼热气泡
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 314347) -- 毒扼
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 309733) -- 疯狂燃烧
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 307053) -- 岩浆池
-module:RegisterDebuff(TIER, INSTANCE, BOSS, 311362) -- 升温
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 313250) -- 蠕行疯狂
 
 BOSS = 2365 -- 玛乌特
@@ -107,6 +106,7 @@ module:RegisterDebuff(TIER, INSTANCE, BOSS, 313227) -- 腐坏伤口
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 310019, 6) -- 充能锁链
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 310022, 6) -- 充能锁链
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 315252) -- 恐怖炼狱
+module:RegisterDebuff(TIER, INSTANCE, BOSS, 316065) -- 腐化存续
 
 BOSS = 2366 -- 恩佐斯的外壳
 module:RegisterDebuff(TIER, INSTANCE, BOSS, 307832) -- 恩佐斯的仆从

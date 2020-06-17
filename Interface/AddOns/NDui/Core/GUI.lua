@@ -3,7 +3,7 @@ local B, C, L, DB = unpack(ns)
 local G = B:RegisterModule("GUI")
 
 local tonumber, tostring, pairs, ipairs, next, select, type = tonumber, tostring, pairs, ipairs, next, select, type
-local tinsert, format, strsplit = table.insert, string.format, string.split
+local tinsert, format, strsplit, strfind = table.insert, string.format, string.split, string.find
 local cr, cg, cb = DB.r, DB.g, DB.b
 local guiTab, guiPage, f, dataFrame = {}, {}
 
@@ -94,7 +94,8 @@ local defaultSettings = {
 		AutoRes = true,
 		NumGroups = 6,
 		SimpleMode = false,
-		SimpleModeSortByRole = true,
+		SMUnitsPerColumn = 20,
+		SMGroupByIndex = 1,
 		InstanceAuras = true,
 		RaidDebuffScale = 1,
 		SpecRaidPos = false,
@@ -135,6 +136,7 @@ local defaultSettings = {
 		BuffIndicatorScale = 1,
 		UFTextScale = 1,
 		PartyAltPower = true,
+		PartyWatcherSync = true,
 		SmoothAmount = .3,
 		RaidTextScale = 1,
 
@@ -185,7 +187,7 @@ local defaultSettings = {
 		Clock = false,
 		CombatPulse = true,
 		MapScale = 1,
-		MinmapScale = 1.4,
+		MinimapScale = 1.4,
 		ShowRecycleBin = true,
 		WhoPings = true,
 		MapReveal = true,
@@ -238,7 +240,6 @@ local defaultSettings = {
 		TMW = true,
 		PetBattle = true,
 		WeakAuras = true,
-		BarLine = true,
 		InfobarLine = true,
 		ChatLine = true,
 		MenuLine = true,
@@ -255,6 +256,7 @@ local defaultSettings = {
 		FontOutline = true,
 		Loot = true,
 		Shadow = true,
+		FontScale = 1,
 	},
 	Tooltip = {
 		CombatHide = false,
@@ -304,13 +306,13 @@ local defaultSettings = {
 		PlacedItemAlert = false,
 		RareAlertInWild = false,
 		ParagonRep = true,
-		UunatAlert = false,
 		InstantDelete = true,
 		RaidTool = true,
 		RMRune = false,
 		DBMCount = "10",
 		EasyMarking = true,
-		BlockWQT = true,
+		BlockInvite = false,
+		NzothVision = true,
 	},
 	Tutorial = {
 		Complete = false,
@@ -319,7 +321,8 @@ local defaultSettings = {
 
 local accountSettings = {
 	ChatFilterList = "%*",
-	Timestamp = true,
+	ChatFilterWhiteList = "",
+	TimestampFormat = 4,
 	NameplateFilter = {[1]={}, [2]={}},
 	RaidDebuffs = {},
 	Changelog = {},
@@ -342,10 +345,10 @@ local accountSettings = {
 	TexStyle = 2,
 	KeystoneInfo = {},
 	AutoBubbles = false,
-	SystemInfoType = 1,
 	DisableInfobars = false,
 	PartyWatcherSpells = {},
 	ContactList = {},
+	CustomJunkList = {},
 }
 
 -- Initial settings
@@ -467,16 +470,16 @@ local function updateChatSticky()
 	B:GetModule("Chat"):ChatWhisperSticky()
 end
 
-local function updateTimestamp()
-	B:GetModule("Chat"):UpdateTimestamp()
-end
-
 local function updateWhisperList()
 	B:GetModule("Chat"):UpdateWhisperList()
 end
 
 local function updateFilterList()
 	B:GetModule("Chat"):UpdateFilterList()
+end
+
+local function updateFilterWhiteList()
+	B:GetModule("Chat"):UpdateFilterWhiteList()
 end
 
 local function updateChatSize()
@@ -539,6 +542,13 @@ local function refreshRaidFrameIcons()
 	B:GetModule("UnitFrames"):RefreshRaidFrameIcons()
 end
 
+local function updateSimpleModeGroupBy()
+	local UF = B:GetModule("UnitFrames")
+	if UF.UpdateSimpleModeHeader then
+		UF:UpdateSimpleModeHeader()
+	end
+end
+
 local function updateSmoothingAmount()
 	B:SetSmoothingAmount(NDuiDB["UFs"]["SmoothAmount"])
 end
@@ -557,10 +567,6 @@ end
 
 local function updateInterruptAlert()
 	B:GetModule("Misc"):InterruptAlert()
-end
-
-local function updateUunatAlert()
-	B:GetModule("Misc"):UunatAlert()
 end
 
 local function updateExplosiveAlert()
@@ -696,9 +702,10 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "PartyFrame", "|cff00cc4c"..L["UFs PartyFrame"]},
 		{1, "UFs", "PartyPetFrame", "|cff00cc4c"..L["UFs PartyPetFrame"], true},
 		{1, "UFs", "HorizonParty", L["Horizon PartyFrame"]},
+		{1, "UFs", "PartyAltPower", L["UFs PartyAltPower"], true, nil, nil, L["PartyAltPowerTip"]},
+		{1, "UFs", "PartyWatcher", "|cff00cc4c"..L["UFs PartyWatcher"], nil, setupPartyWatcher, nil, L["PartyWatcherTip"]},
 		{1, "UFs", "PWOnRight", L["PartyWatcherOnRight"], true},
-		{1, "UFs", "PartyWatcher", L["UFs PartyWatcher"], nil, setupPartyWatcher},
-		{1, "UFs", "PartyAltPower", L["UFs PartyAltPower"], true},
+		{1, "UFs", "PartyWatcherSync", L["PartyWatcherSync"], nil, nil, nil, L["PartyWatcherSyncTip"]},
 		{},--blank
 		{1, "UFs", "RaidBuffIndicator", "|cff00cc4c"..L["RaidBuffIndicator"], nil, setupBuffIndicator, nil, L["RaidBuffIndicatorTip"]},
 		{4, "UFs", "BuffIndicatorType", L["BuffIndicatorType"].."*", nil, {L["BI_Blocks"], L["BI_Icons"], L["BI_Numbers"]}, refreshRaidFrameIcons},
@@ -706,7 +713,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "UFs", "RaidClickSets", "|cff00cc4c"..L["Enable ClickSets"], nil, setupClickCast},
 		{1, "UFs", "InstanceAuras", "|cff00cc4c"..L["Instance Auras"], nil, setupRaidDebuffs},
 		{3, "UFs", "RaidDebuffScale", L["RaidDebuffScale"].."*", true, {.8, 2, 1}, refreshRaidFrameIcons},
-		{1, "UFs", "AurasClickThrough", L["RaidAuras ClickThrough"]},
+		{1, "UFs", "AurasClickThrough", L["RaidAuras ClickThrough"], nil, nil, nil, L["ClickThroughTip"]},
 		{1, "UFs", "AutoRes", L["UFs AutoRes"], true},
 		{},--blank
 		{1, "UFs", "ShowTeamIndex", L["RaidFrame TeamIndex"]},
@@ -718,8 +725,11 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{3, "UFs", "NumGroups", L["Num Groups"], nil, {4, 8, 0}},
 		{3, "UFs", "RaidTextScale", L["UFTextScale"], true, {.8, 1.5, 2}, updateRaidTextScale},
 		{},--blank
-		{1, "UFs", "SimpleMode", "|cff00cc4c"..L["Simple RaidFrame"]},
-		{1, "UFs", "SimpleModeSortByRole", L["SimpleMode SortByRole"], true},
+		{1, "UFs", "SimpleMode", "|cff00cc4c"..L["SimpleRaidFrame"], nil, nil, nil, L["SimpleRaidFrameTip"]},
+		{3, "UFs", "SMUnitsPerColumn", L["SimpleMode Column"], nil, {10, 40, 0}},
+		{4, "UFs", "SMGroupByIndex", L["SimpleMode GroupBy"].."*", true, {GROUP, CLASS, ROLE}, updateSimpleModeGroupBy},
+		{nil, true},-- FIXME: dirty fix for now
+		{nil, true},
 	},
 	[5] = {
 		{1, "Nameplate", "Enable", "|cff00cc4c"..L["Enable Nameplate"], nil, setupNameplateFilter},
@@ -760,7 +770,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "AuraWatch", "Enable", "|cff00cc4c"..L["Enable AuraWatch"], nil, setupAuraWatch},
 		{1, "AuraWatch", "DeprecatedAuras", L["DeprecatedAuras"], true},
 		{1, "AuraWatch", "QuakeRing", L["QuakeRing"].."*"},
-		{1, "AuraWatch", "ClickThrough", L["AuraWatch ClickThrough"]},
+		{1, "AuraWatch", "ClickThrough", L["AuraWatch ClickThrough"], nil, nil, nil, L["ClickThroughTip"]},
 		{3, "AuraWatch", "IconScale", L["AuraWatch IconScale"], true, {.8, 2, 1}},
 		{},--blank
 		{1, "Nameplate", "ShowPlayerPlate", "|cff00cc4c"..L["Enable PlayerPlate"]},
@@ -782,7 +792,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{1, "Auras", "Statue", L["Enable Statue"]},
 		{1, "Auras", "Totems", L["Enable Totems"], true},
-		{1, "Auras", "Reminder", L["Enable Reminder"].."*", nil, nil, updateReminder},
+		{1, "Auras", "Reminder", L["Enable Reminder"].."*", nil, nil, updateReminder, L["ReminderTip"]},
 	},
 	[7] = {
 		{1, "Misc", "RaidTool", "|cff00cc4c"..L["Raid Manger"]},
@@ -801,8 +811,8 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{},--blank
 		{1, "Misc", "ExplosiveCount", L["Explosive Alert"].."*", nil, nil, updateExplosiveAlert},
 		{1, "Misc", "PlacedItemAlert", L["Placed Item Alert"].."*", true},
-		{1, "Misc", "UunatAlert", L["Uunat Alert"].."*", nil, nil, updateUunatAlert},
-		{1, "Misc", "SoloInfo", L["SoloInfo"].."*", true, nil, updateSoloInfo},
+		{1, "Misc", "SoloInfo", L["SoloInfo"].."*", nil, nil, updateSoloInfo},
+		{1, "Misc", "NzothVision", "|cff00cc4c"..L["NzothVision"], true},
 		{},--blank
 		{1, "Misc", "RareAlerter", "|cff00cc4c"..L["Rare Alert"].."*", nil, nil, updateRareAlert},
 		{1, "Misc", "AlertinChat", L["Alert In Chat"].."*"},
@@ -814,17 +824,18 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{3, "Chat", "ChatHeight", L["LockChatHeight"].."*", true, {100, 500, 0}, updateChatSize},
 		{},--blank
 		{1, "Chat", "Oldname", L["Default Channel"]},
-		{1, "ACCOUNT", "Timestamp", L["Timestamp"], true, nil, updateTimestamp},
-		{1, "Chat", "Sticky", L["Chat Sticky"].."*", nil, nil, updateChatSticky},
-		{1, "Chat", "WhisperColor", L["Differ WhipserColor"].."*", true},
-		{1, "Chat", "Freedom", L["Language Filter"]},
-		{1, "Chat", "Chatbar", L["ShowChatbar"], true},
+		{1, "Chat", "Sticky", L["Chat Sticky"].."*", true, nil, updateChatSticky},
+		{1, "Chat", "Chatbar", L["ShowChatbar"]},
+		{1, "Chat", "WhisperColor", L["Differ WhisperColor"].."*", true},
 		{1, "Chat", "ChatItemLevel", L["ShowChatItemLevel"]},
+		{1, "Chat", "Freedom", L["Language Filter"]},
+		{4, "ACCOUNT", "TimestampFormat", L["TimestampFormat"].."*", true, {DISABLE, "03:27 PM", "03:27:32 PM", "15:27", "15:27:32"}},
 		{},--blank
 		{1, "Chat", "EnableFilter", "|cff00cc4c"..L["Enable Chatfilter"]},
 		{1, "Chat", "BlockAddonAlert", L["Block Addon Alert"], true},
 		{1, "Chat", "AllowFriends", L["AllowFriendsSpam"].."*", nil, nil, nil, L["AllowFriendsSpamTip"]},
-		{1, "Chat", "BlockStranger", "|cffff0000"..L["BlockStranger"].."*", true, nil, nil, L["BlockStrangerTip"]},
+		{1, "Chat", "BlockStranger", "|cffff0000"..L["BlockStranger"].."*", nil, nil, nil, L["BlockStrangerTip"]},
+		{2, "ACCOUNT", "ChatFilterWhiteList", "|cff00cc4c"..L["ChatFilterWhiteList"].."*", true, nil, updateFilterWhiteList, L["ChatFilterWhiteListTip"]},
 		{3, "Chat", "Matches", L["Keyword Match"].."*", false, {1, 3, 0}},
 		{2, "ACCOUNT", "ChatFilterList", L["Filter List"].."*", true, nil, updateFilterList, L["FilterListTip"]},
 		{},--blank
@@ -843,25 +854,24 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Misc", "ExpRep", L["Show Expbar"], true},
 		{},--blank
 		{3, "Map", "MapScale", L["Map Scale"], false, {1, 2, 1}},
-		{3, "Map", "MinmapScale", L["Minimap Scale"].."*", true, {1, 2, 1}, updateMinimapScale},
+		{3, "Map", "MinimapScale", L["Minimap Scale"].."*", true, {1, 2, 1}, updateMinimapScale},
 	},
 	[10] = {
-		{1, "Skins", "FlatMode", L["FlatMode"]},
+		{1, "Skins", "BlizzardSkins", "|cff00cc4c"..L["BlizzardSkins"], nil, nil, nil, L["BlizzardSkinsTips"]},
+		{1, "Skins", "AlertFrames", L["ReskinAlertFrames"], true},
+		{1, "Skins", "DefaultBags", L["DefaultBags"], nil, nil, nil, L["DefaultBagsTips"]},
+		{1, "Skins", "Loot", L["Loot"], true},
+		{1, "Skins", "PetBattle", L["PetBattle Skin"]},
+		{1, "Skins", "FlatMode", L["FlatMode"], true},
 		{1, "Skins", "Shadow", L["Shadow"]},
-		{3, "Skins", "SkinAlpha", L["SkinAlpha"].."*", true, {0, 1, 1}, updateSkinAlpha},
-		{1, "Skins", "FontOutline", L["FontOutline"]},
-		{1, "Skins", "PetBattle", L["PetBattle Skin"], true},
-		{1, "Skins", "AlertFrames", L["ReskinAlertFrames"]},
-		{1, "Skins", "DefaultBags", L["DefaultBags"], true, nil, nil, L["DefaultBagsTips"]},
-		{1, "Skins", "Loot", L["Loot"]},
-		{1, "Skins", "BlizzardSkins", "|cff00cc4c"..L["BlizzardSkins"], true, nil, nil, L["BlizzardSkinsTips"]},
+		{1, "Skins", "FontOutline", L["FontOutline"], true},
+		{3, "Skins", "SkinAlpha", L["SkinAlpha"].."*", nil, {0, 1, 1}, updateSkinAlpha},
+		{3, "Skins", "FontScale", L["GlobalFontScale"], true, {.5, 1.5, 1}},
 		{},--blank
-
-		{1, "Skins", "BarLine", L["Bar Line"]},
+		{1, "Skins", "ClassLine", L["ClassColor Line"]},
 		{1, "Skins", "InfobarLine", L["Infobar Line"], true},
 		{1, "Skins", "ChatLine", L["Chat Line"]},
 		{1, "Skins", "MenuLine", L["Menu Line"], true},
-		{1, "Skins", "ClassLine", L["ClassColor Line"]},
 		{},--blank
 		{1, "Skins", "Skada", L["Skada Skin"]},
 		{1, "Skins", "Details", L["Details Skin"], nil, resetDetails},
@@ -911,7 +921,7 @@ local optionList = { -- type, key, value, name, horizon, doubleline
 		{1, "Misc", "FasterLoot", L["Faster Loot"].."*", nil, nil, updateFasterLoot},
 		{1, "Misc", "HideErrors", L["Hide Error"].."*", true, nil, updateErrorBlocker},
 		{1, "Misc", "InstantDelete", L["InstantDelete"].."*"},
-		{1, "Misc", "BlockWQT", L["BlockWQT"], true},
+		{1, "Misc", "BlockInvite", "|cffff0000"..L["BlockInvite"].."*", true},
 	},
 	[13] = {
 		{1, "ACCOUNT", "VersionCheck", L["Version Check"]},
@@ -1104,9 +1114,11 @@ local function CreateOption(i)
 			end
 		-- Blank, no optType
 		else
-			local l = CreateFrame("Frame", nil, parent)
-			l:SetPoint("TOPLEFT", 25, -offset - 12)
-			B.CreateGF(l, 560, C.mult, "Horizontal", 1, 1, 1, .25, .25)
+			if not key then
+				local l = CreateFrame("Frame", nil, parent)
+				l:SetPoint("TOPLEFT", 25, -offset - 12)
+				B.CreateGF(l, 560, C.mult, "Horizontal", 1, 1, 1, .25, .25)
+			end
 			offset = offset + 35
 		end
 	end
@@ -1170,7 +1182,7 @@ local function exportData()
 	end
 
 	for KEY, VALUE in pairs(NDuiADB) do
-		if KEY == "RaidAuraWatch" then
+		if KEY == "RaidAuraWatch" or KEY == "CustomJunkList" then
 			text = text..";ACCOUNT:"..KEY
 			for spellID in pairs(VALUE) do
 				text = text..":"..spellID
@@ -1241,7 +1253,7 @@ local function importData()
 			NDuiDB[key][value] = toBoolean(arg1)
 		elseif arg1 == "EMPTYTABLE" then
 			NDuiDB[key][value] = {}
-		elseif arg1 == "r" or arg1 == "g" or arg1 == "b" then
+		elseif strfind(value, "Color") and (arg1 == "r" or arg1 == "g" or arg1 == "b") then
 			local color = select(4, strsplit(":", option))
 			if NDuiDB[key][value] then
 				NDuiDB[key][value][arg1] = tonumber(color)
@@ -1285,7 +1297,7 @@ local function importData()
 			itemID = tonumber(itemID)
 			NDuiDB[key][spellID] = {spellID, duration, indicator, unit, itemID}
 		elseif key == "ACCOUNT" then
-			if value == "RaidAuraWatch" then
+			if value == "RaidAuraWatch" or value == "CustomJunkList" then
 				local spells = {select(3, strsplit(":", option))}
 				for _, spellID in next, spells do
 					NDuiADB[value][tonumber(spellID)] = true
@@ -1414,7 +1426,6 @@ local function createDataFrame()
 end
 
 local function OpenGUI()
-	if InCombatLockdown() then UIErrorsFrame:AddMessage(DB.InfoColor..ERR_NOT_IN_COMBAT) return end
 	if f then f:Show() return end
 
 	-- Main Frame
@@ -1539,6 +1550,7 @@ function G:OnLogin()
 	end)
 
 	gui:SetScript("OnClick", function()
+		if InCombatLockdown() then UIErrorsFrame:AddMessage(DB.InfoColor..ERR_NOT_IN_COMBAT) return end
 		OpenGUI()
 		HideUIPanel(GameMenuFrame)
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION)

@@ -92,7 +92,7 @@ info.onEnter = function(self)
 	GameTooltip:AddLine(" ")
 
 	local totalGold = 0
-	GameTooltip:AddLine(L["Character"], .6,.8,1)
+	GameTooltip:AddLine(L["RealmCharacter"], .6,.8,1)
 	local thisRealmList = NDuiADB["totalGold"][myRealm]
 	for k, v in pairs(thisRealmList) do
 		local gold, class = unpack(v)
@@ -148,8 +148,8 @@ local function startSelling()
 			local link = GetContainerItemLink(bag, slot)
 			if link then
 				local price = select(11, GetItemInfo(link))
-				local _, count, _, quality = GetContainerItemInfo(bag, slot)
-				if quality == 0 and price > 0 and not cache["b"..bag.."s"..slot] then
+				local _, count, _, quality, _, _, _, _, _, itemID = GetContainerItemInfo(bag, slot)
+				if (quality == 0 or NDuiADB["CustomJunkList"][itemID]) and price > 0 and not cache["b"..bag.."s"..slot] then
 					sellCount = sellCount + price*count
 					cache["b"..bag.."s"..slot] = true
 					UseContainerItem(bag, slot)
