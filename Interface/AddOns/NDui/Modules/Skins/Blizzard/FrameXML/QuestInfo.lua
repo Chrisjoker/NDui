@@ -9,7 +9,7 @@ tinsert(C.defaultThemes, function()
 	-- Item reward highlight
 	local function clearHighlight()
 		for _, button in pairs(QuestInfoRewardsFrame.RewardButtons) do
-			button.bg:SetBackdropColor(0, 0, 0, .25)
+			button.textBg:SetBackdropColor(0, 0, 0, .25)
 		end
 	end
 
@@ -18,7 +18,7 @@ tinsert(C.defaultThemes, function()
 
 		local _, point = self:GetPoint()
 		if point then
-			point.bg:SetBackdropColor(r, g, b, .2)
+			point.textBg:SetBackdropColor(r, g, b, .25)
 		end
 	end
 
@@ -89,31 +89,25 @@ tinsert(C.defaultThemes, function()
 
 	local function restyleRewardButton(bu, isMapQuestInfo)
 		bu.NameFrame:Hide()
-		if bu.IconBorder then bu.IconBorder:SetAlpha(0) end
 
 		if isMapQuestInfo then
 			bu.Icon:SetSize(29, 29)
 		else
 			bu.Icon:SetSize(34, 34)
 		end
-
-		bu.iconBG = B.ReskinIcon(bu.Icon)
+		bu.bg = B.ReskinIcon(bu.Icon)
 
 		local bg = B.CreateBDFrame(bu, .25)
-		bg:SetPoint("TOPLEFT", bu.iconBG, "TOPRIGHT", 2, 0)
-		bg:SetPoint("BOTTOMRIGHT", bu.iconBG, 100, 0)
-		bu.bg = bg
-	end
-
-	local function updateBackdropColor(self, r, g, b)
-		self:GetParent().iconBG:SetBackdropBorderColor(r, g, b)
+		bg:SetPoint("TOPLEFT", bu.bg, "TOPRIGHT", 2, 0)
+		bg:SetPoint("BOTTOMRIGHT", bu.bg, 100, 0)
+		bu.textBg = bg
 	end
 
 	hooksecurefunc("QuestInfo_GetRewardButton", function(rewardsFrame, index)
 		local bu = rewardsFrame.RewardButtons[index]
 		if not bu.restyled then
 			restyleRewardButton(bu, rewardsFrame == MapQuestInfoRewardsFrame)
-			hooksecurefunc(bu.IconBorder, "SetVertexColor", updateBackdropColor)
+			B.HookIconBorderColor(bu.IconBorder)
 
 			bu.restyled = true
 		end
@@ -158,20 +152,20 @@ tinsert(C.defaultThemes, function()
 			-- Follower Rewards
 			for reward in rewardsFrame.followerRewardPool:EnumerateActive() do
 				local portrait = reward.PortraitFrame
-				if not reward.bg then
+				if not reward.textBg then
 					B.ReskinGarrisonPortrait(portrait)
 					reward.BG:Hide()
-					reward.bg = B.CreateBDFrame(reward, .25)
+					reward.textBg = B.CreateBDFrame(reward, .25)
 				end
 
 				if isQuestLog then
 					portrait:SetPoint("TOPLEFT", 2, 0)
-					reward.bg:SetPoint("TOPLEFT", 0, 1)
-					reward.bg:SetPoint("BOTTOMRIGHT", 2, -3)
+					reward.textBg:SetPoint("TOPLEFT", 0, 1)
+					reward.textBg:SetPoint("BOTTOMRIGHT", 2, -3)
 				else
 					portrait:SetPoint("TOPLEFT", 2, -5)
-					reward.bg:SetPoint("TOPLEFT", 0, -3)
-					reward.bg:SetPoint("BOTTOMRIGHT", 2, 7)
+					reward.textBg:SetPoint("TOPLEFT", 0, -3)
+					reward.textBg:SetPoint("BOTTOMRIGHT", 2, 7)
 				end
 
 				if portrait then

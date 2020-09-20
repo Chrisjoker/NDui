@@ -74,35 +74,30 @@ tinsert(C.defaultThemes, function()
 	for i = 1, #slots do
 		local slot = _G["Character"..slots[i].."Slot"]
 		local cooldown = _G["Character"..slots[i].."SlotCooldown"]
-		local border = slot.IconBorder
 
 		B.StripTextures(slot)
 		slot.icon:SetTexCoord(unpack(DB.TexCoord))
 		slot.icon:SetInside()
-		B.CreateBD(slot, .25)
+		slot.bg = B.CreateBDFrame(slot.icon, .25)
 		cooldown:SetInside()
 
 		slot.ignoreTexture:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-LeaveItem-Transparent")
 		slot.CorruptedHighlightTexture:SetAtlas("Nzoth-charactersheet-item-glow")
 		slot.IconOverlay:SetAtlas("Nzoth-inventory-icon")
 		slot.IconOverlay:SetInside()
-
-		border:SetAlpha(0)
-		hooksecurefunc(border, "SetVertexColor", function(_, r, g, b) slot:SetBackdropBorderColor(r, g, b) end)
-		hooksecurefunc(border, "Hide", function() slot:SetBackdropBorderColor(0, 0, 0) end)
+		B.HookIconBorderColor(slot.IconBorder)
 
 		local popout = slot.popoutButton
 		popout:SetNormalTexture("")
 		popout:SetHighlightTexture("")
 
 		local arrow = popout:CreateTexture(nil, "OVERLAY")
+		arrow:SetSize(14, 14)
 		if slot.verticalFlyout then
-			arrow:SetSize(13, 8)
-			arrow:SetTexture(DB.arrowDown)
+			B.SetupArrow(arrow, "down")
 			arrow:SetPoint("TOP", slot, "BOTTOM", 0, 1)
 		else
-			arrow:SetSize(8, 14)
-			arrow:SetTexture(DB.arrowRight)
+			B.SetupArrow(arrow, "right")
 			arrow:SetPoint("LEFT", slot, "RIGHT", -1, 0)
 		end
 		popout.arrow = arrow
@@ -148,7 +143,7 @@ tinsert(C.defaultThemes, function()
 		if i == 1 then
 			for i = 1, 4 do
 				local region = select(i, tab:GetRegions())
-				region:SetTexCoord(0.16, 0.86, 0.16, 0.86)
+				region:SetTexCoord(.16, .86, .16, .86)
 				region.SetTexCoord = B.Dummy
 			end
 		end

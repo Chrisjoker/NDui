@@ -24,10 +24,22 @@ local function ForceDefaultSettings()
 	SetCVar("ActionButtonUseKeyDown", 1)
 	SetCVar("alwaysShowActionBars", 1)
 	SetCVar("lockActionBars", 1)
-	SetActionBarToggles(1, 1, 1, 1)
 	SetCVar("ffxGlow", 0)
 	SetCVar("autoQuestWatch", 1)
 	SetCVar("overrideArchive", 0)
+	SetCVar("WorldTextScale", 1.2)
+	SetCVar("cameraDistanceMaxZoomFactor", 2.6)
+	SetCVar("floatingCombatTextFloatMode", 1)
+	SetCVar("floatingCombatTextCombatDamage", 1)
+	SetCVar("floatingCombatTextCombatHealing", 1)
+	SetCVar("floatingCombatTextCombatDamageDirectionalScale", 0)
+	SetCVar("floatingCombatTextCombatDamageDirectionalOffset", 10)
+	SetActionBarToggles(1, 1, 1, 1)
+	if DB.isDeveloper then
+		SetCVar("SpellQueueWindow", 100)
+		SetCVar("nameplateShowOnlyNames", 1)
+		SetCVar("ShowClassColorInFriendlyNameplate", 1)
+	end
 end
 
 local function ForceRaidFrame()
@@ -372,7 +384,7 @@ local function HelloWorld()
 	local c1, c2 = "|c00FFFF00", "|c0000FF00"
 	local lines = {
 		c1.." /ww "..c2..L["Help Info12"],
-		c1.." /hb "..c2..L["Help Info5"],
+		c1.." /bb "..c2..L["Help Info5"],
 		c1.." /mm "..c2..L["Help Info6"],
 		c1.." /rl "..c2..L["Help Info7"],
 		c1.." /ncl "..c2..L["Help Info9"],

@@ -16,14 +16,12 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 
 		local itemButton = itemDisplay.ItemButton
 		if itemButton.IconMask then itemButton.IconMask:Hide() end
-		if itemButton.IconBorder then itemButton.IconBorder:SetAlpha(0) end
 		itemButton.EmptyBackground:Hide()
 		itemButton:SetPushedTexture("")
 		itemButton.Highlight:SetColorTexture(1, 1, 1, .25)
 		itemButton.Highlight:SetAllPoints(itemButton.Icon)
-		local bg = B.ReskinIcon(itemButton.Icon)
-		hooksecurefunc(itemButton.IconBorder, "SetVertexColor", function(_, r, g, b) bg:SetBackdropBorderColor(r, g, b) end)
-		hooksecurefunc(itemButton.IconBorder, "Hide", function() bg:SetBackdropBorderColor(0, 0, 0) end)
+		itemButton.bg = B.ReskinIcon(itemButton.Icon)
+		B.HookIconBorderColor(itemButton.IconBorder)
 
 		B.ReskinInput(frame.QuantityInput.InputBox)
 		B.Reskin(frame.QuantityInput.MaxButton)
@@ -112,16 +110,15 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 		end
 	end
 
-	local function reskinItemDisplay(frame)
-		local itemDisplay = frame.ItemDisplay
+	local function reskinItemDisplay(itemDisplay)
 		B.StripTextures(itemDisplay)
 		local bg = B.CreateBDFrame(itemDisplay, .25)
 		bg:SetPoint("TOPLEFT", 3, -3)
 		bg:SetPoint("BOTTOMRIGHT", -3, 0)
 		local itemButton = itemDisplay.ItemButton
 		if itemButton.CircleMask then itemButton.CircleMask:Hide() end
-		itemButton.IconBorder:SetAlpha(0)
-		B.ReskinIcon(itemButton.Icon)
+		itemButton.bg = B.ReskinIcon(itemButton.Icon)
+		B.HookIconBorderColor(itemButton.IconBorder)
 	end
 
 	local function reskinItemList(frame, hasHeader)
@@ -169,7 +166,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	B.Reskin(itemBuyFrame.BuyoutFrame.BuyoutButton)
 	B.ReskinInput(AuctionHouseFrameGold)
 	B.ReskinInput(AuctionHouseFrameSilver)
-	reskinItemDisplay(itemBuyFrame)
+	reskinItemDisplay(itemBuyFrame.ItemDisplay)
 	reskinItemList(itemBuyFrame.ItemList, true)
 
 	local commBuyFrame = AuctionHouseFrame.CommoditiesBuyFrame
@@ -178,7 +175,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	B.StripTextures(buyDisplay)
 	B.ReskinInput(buyDisplay.QuantityInput.InputBox)
 	B.Reskin(buyDisplay.BuyButton)
-	reskinItemDisplay(buyDisplay)
+	reskinItemDisplay(buyDisplay.ItemDisplay)
 	reskinItemList(commBuyFrame.ItemList)
 
 	local wowTokenResults = AuctionHouseFrame.WoWTokenResults
@@ -203,7 +200,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	B.CreateBDFrame(woWTokenSellFrame.DummyItemList, .25)
 	B.ReskinScroll(woWTokenSellFrame.DummyItemList.DummyScrollBar)
 	reskinAuctionButton(woWTokenSellFrame.DummyRefreshButton)
-	reskinItemDisplay(woWTokenSellFrame)
+	reskinItemDisplay(woWTokenSellFrame.ItemDisplay)
 
 	reskinSellPanel(AuctionHouseFrame.ItemSellFrame)
 	reskinSellPanel(AuctionHouseFrame.CommoditiesSellFrame)
@@ -214,7 +211,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	reskinSellList(AuctionHouseFrameAuctionsFrame.BidsList, true)
 	reskinSellList(AuctionHouseFrameAuctionsFrame.CommoditiesList, true)
 	reskinSellList(AuctionHouseFrameAuctionsFrame.ItemList, true)
-	reskinItemDisplay(AuctionHouseFrameAuctionsFrame)
+	reskinItemDisplay(AuctionHouseFrameAuctionsFrame.ItemDisplay)
 
 	B.ReskinTab(AuctionHouseFrameAuctionsFrameAuctionsTab)
 	B.ReskinTab(AuctionHouseFrameAuctionsFrameBidsTab)

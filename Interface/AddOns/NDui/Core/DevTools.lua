@@ -20,6 +20,7 @@ local IsQuestFlaggedCompleted = C_QuestLog.IsQuestFlaggedCompleted
 
 DB.Devs = {
 	["寧德-加尔"] = true,
+	["图咿-万色星辰"] = true,
 }
 local function isDeveloper()
 	return DB.Devs[DB.MyName.."-"..DB.MyRealm]
@@ -129,6 +130,8 @@ do
 		local channel
 		if IsInRaid() then
 			channel = "RAID"
+		elseif IsInGroup() then
+			channel = "PARTY"
 		elseif IsInGuild() then
 			channel = "GUILD"
 		end

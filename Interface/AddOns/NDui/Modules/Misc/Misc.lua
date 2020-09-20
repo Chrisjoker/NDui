@@ -27,7 +27,7 @@ local SetSavedInstanceExtend = SetSavedInstanceExtend
 local RequestRaidInfo, RaidInfoFrame_Update = RequestRaidInfo, RaidInfoFrame_Update
 local IsGuildMember, C_BattleNet_GetGameAccountInfoByGUID, C_FriendList_IsFriend = IsGuildMember, C_BattleNet.GetGameAccountInfoByGUID, C_FriendList.IsFriend
 local GetMerchantNumItems, GetMerchantItemID = GetMerchantNumItems, GetMerchantItemID
-local HEADER_COLON, MERCHANT_ITEMS_PER_PAGE = HEADER_COLON, MERCHANT_ITEMS_PER_PAGE
+local MERCHANT_ITEMS_PER_PAGE = MERCHANT_ITEMS_PER_PAGE
 
 --[[
 	Miscellaneous 各种有用没用的小玩意儿
@@ -48,30 +48,22 @@ function M:OnLogin()
 	end
 
 	-- Init
-	self:NakedIcon()
-	self:ExtendInstance()
-	self:VehicleSeatMover()
-	self:UIWidgetFrameMover()
-	self:MoveDurabilityFrame()
-	self:MoveTicketStatusFrame()
-	self:UpdateScreenShot()
-	self:UpdateFasterLoot()
-	self:UpdateErrorBlocker()
-	self:TradeTargetInfo()
-	self:MoverQuestTracker()
-	self:BlockStrangerInvite()
-	self:OverrideAWQ()
-	self:ReplaceContaminantName()
-
-	-- Max camera distancee
-	if tonumber(GetCVar("cameraDistanceMaxZoomFactor")) ~= 2.6 then
-		SetCVar("cameraDistanceMaxZoomFactor", 2.6)
-	end
-
-	-- Hide Bossbanner
-	if NDuiDB["Misc"]["HideBanner"] then
-		BossBanner:UnregisterAllEvents()
-	end
+	M:NakedIcon()
+	M:ExtendInstance()
+	M:VehicleSeatMover()
+	M:UIWidgetFrameMover()
+	M:MoveDurabilityFrame()
+	M:MoveTicketStatusFrame()
+	M:UpdateScreenShot()
+	M:UpdateFasterLoot()
+	M:UpdateErrorBlocker()
+	M:TradeTargetInfo()
+	M:MoverQuestTracker()
+	M:BlockStrangerInvite()
+	M:OverrideAWQ()
+	M:ReplaceContaminantName()
+	M:ToggleBossBanner()
+	M:ToggleBossEmote()
 
 	-- Unregister talent event
 	if PlayerTalentFrame then
@@ -113,6 +105,27 @@ function M:OnLogin()
 		if not owner then return end
 		if owner:GetID() < 1 then return end
 		_AddonTooltip_Update(owner)
+	end
+end
+
+-- Hide Bossbanner
+function M:ToggleBossBanner()
+	if NDuiDB["Misc"]["HideBanner"] then
+		BossBanner:UnregisterAllEvents()
+	else
+		BossBanner:RegisterEvent("BOSS_KILL")
+		BossBanner:RegisterEvent("ENCOUNTER_LOOT_RECEIVED")
+	end
+end
+
+-- Hide boss emote
+function M:ToggleBossEmote()
+	if NDuiDB["Misc"]["HideBossEmote"] then
+		RaidBossEmoteFrame:UnregisterAllEvents()
+	else
+		RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_EMOTE")
+		RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_WHISPER")
+		RaidBossEmoteFrame:RegisterEvent("CLEAR_BOSS_EMOTES")
 	end
 end
 
@@ -446,41 +459,32 @@ local contaminantsLevel = {
 	[178015] = "III",	-- 虚空仪式
 }
 function M:ReplaceContaminantName()
-	local itemString
-
-	local function updateItemString()
-		local itemName = GetItemInfo(177981)
-		if itemName then
-			return strmatch(itemName, "(.+"..HEADER_COLON..")").."(.+)"
-		end
-	end
+	local itemString = HEADER_COLON.."(.+)"
 
 	local function setupMisc()
-		if not itemString then
-			itemString = updateItemString()
-		end
-		if not itemString then return end
-
 		local numItems = GetMerchantNumItems()
 		for i = 1, MERCHANT_ITEMS_PER_PAGE do
 			local index = (MerchantFrame.page - 1) * MERCHANT_ITEMS_PER_PAGE + i
 			if index > numItems then return end
 
-			local button = _G["MerchantItem"..i.."ItemButton"]
+			local item = _G["MerchantItem"..i]
+			local button = item.ItemButton
 			if button and button:IsShown() then
-				local name = _G["MerchantItem"..i.."Name"]
-				local text = name and name:GetText()
-				local newString = text and strmatch(text, itemString)
-				if newString then
-					name:SetText(newString)
-				end
-
 				local id = GetMerchantItemID(index)
 				local level = id and contaminantsLevel[id]
 				if not button.levelString then
 					button.levelString = B.CreateFS(button, 14, "", nil, "TOPLEFT", 3, -3)
 				end
 				button.levelString:SetText(level or "")
+
+				if level then
+					local name = item.Name
+					local nameText = name and name:GetText()
+					local newString = nameText and strmatch(nameText, itemString)
+					if newString then
+						name:SetText(newString)
+					end
+				end
 			end
 		end
 	end

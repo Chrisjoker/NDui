@@ -76,8 +76,8 @@ tinsert(C.defaultThemes, function()
 
 		if not self.bg then
 			self.bg = B.SetBD(self)
-			self.bg:Point("TOPLEFT", self.LeftBar, -2, 2)
-			self.bg:Point("BOTTOMRIGHT", self.RightBar, 2, -2)
+			self.bg:SetPoint("TOPLEFT", self.LeftBar, -2, 2)
+			self.bg:SetPoint("BOTTOMRIGHT", self.RightBar, 2, -2)
 		end
 	end)
 
@@ -94,7 +94,7 @@ tinsert(C.defaultThemes, function()
 			bar.BorderRight:SetAlpha(0)
 			bar.BorderCenter:SetAlpha(0)
 			bar.Spark:SetAlpha(0)
-			B.CreateBDFrame(bar, .25)
+			B.SetBD(bar)
 
 			bar.styled = true
 		end

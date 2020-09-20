@@ -16,13 +16,14 @@ local diceSpells = {
 function A:PostCreateLumos(self)
 	local iconSize = (self:GetWidth() - 10)/6
 	local buttons = {}
+	local offset = NDuiDB["Nameplate"]["NameplateClassPower"] and C.margin or (C.margin*2 + NDuiDB["Nameplate"]["PPBarHeight"])
 	for i = 1, 6 do
 		local bu = CreateFrame("Frame", nil, self.Health)
 		bu:SetSize(iconSize, iconSize)
 		bu.Text = B.CreateFS(bu, 12, diceSpells[i].text, false, "TOP", 1, 12)
 		B.AuraIcon(bu)
 		if i == 1 then
-			bu:SetPoint("BOTTOMLEFT", self.Health, "TOPLEFT", 0, 8 + self.Health:GetHeight())
+			bu:SetPoint("BOTTOMLEFT", self.Health, "TOPLEFT", 0, offset)
 		else
 			bu:SetPoint("LEFT", buttons[i-1], "RIGHT", 2, 0)
 		end
@@ -57,11 +58,11 @@ function A:ChantLumos(self)
 	if GetSpecialization() == 1 then
 		for i = 1, 6 do self.dices[i]:Hide() end
 
-		UpdateDebuff(self.bu[1], 703, 703, true, "END")
-		UpdateDebuff(self.bu[2], 1943, 1943, false, "END")
+		UpdateDebuff(self.lumos[1], 703, 703, true, "END")
+		UpdateDebuff(self.lumos[2], 1943, 1943, false, "END")
 
 		do
-			local button = self.bu[3]
+			local button = self.lumos[3]
 			if IsPlayerSpell(111240) then
 				UpdateSpellStatus(button, 111240)
 			elseif IsPlayerSpell(193640) then
@@ -72,7 +73,7 @@ function A:ChantLumos(self)
 		end
 
 		do
-			local button = self.bu[4]
+			local button = self.lumos[4]
 			if IsPlayerSpell(200806) then
 				UpdateCooldown(button, 200806, true)
 			elseif IsPlayerSpell(245388) then
@@ -82,13 +83,13 @@ function A:ChantLumos(self)
 			end
 		end
 
-		UpdateDebuff(self.bu[5], 79140, 79140, true, true)
+		UpdateDebuff(self.lumos[5], 79140, 79140, true, true)
 	elseif GetSpecialization() == 2 then
-		UpdateBuff(self.bu[1], 195627, 195627)
-		UpdateCooldown(self.bu[2], 199804, true)
+		UpdateBuff(self.lumos[1], 195627, 195627)
+		UpdateCooldown(self.lumos[2], 199804, true)
 
 		do
-			local button = self.bu[3]
+			local button = self.lumos[3]
 			if IsPlayerSpell(5171) then
 				UpdateBuff(button, 5171, 5171)
 			elseif IsPlayerSpell(193539) then
@@ -98,8 +99,8 @@ function A:ChantLumos(self)
 			end
 		end
 
-		UpdateBuff(self.bu[4], 13750, 13750, true, true)
-		UpdateBuff(self.bu[5], 13877, 13877, true, true)
+		UpdateBuff(self.lumos[4], 13750, 13750, true, true)
+		UpdateBuff(self.lumos[5], 13877, 13877, true, true)
 
 		-- Dices
 		for i = 1, 6 do
@@ -111,10 +112,10 @@ function A:ChantLumos(self)
 	elseif GetSpecialization() == 3 then
 		for i = 1, 6 do self.dices[i]:Hide() end
 
-		UpdateDebuff(self.bu[1], 195452, 195452, true, "END")
+		UpdateDebuff(self.lumos[1], 195452, 195452, true, "END")
 
 		do
-			local button = self.bu[2]
+			local button = self.lumos[2]
 			if IsPlayerSpell(277925) then
 				UpdateBuff(button, 277925, 277925, true)
 			elseif IsPlayerSpell(280719) then
@@ -124,8 +125,8 @@ function A:ChantLumos(self)
 			end
 		end
 
-		UpdateBuff(self.bu[3], 185313, 185422, true, true)
-		UpdateBuff(self.bu[4], 212283, 212283, true)
-		UpdateBuff(self.bu[5], 121471, 121471, true, true)
+		UpdateBuff(self.lumos[3], 185313, 185422, true, true)
+		UpdateBuff(self.lumos[4], 212283, 212283, true)
+		UpdateBuff(self.lumos[5], 121471, 121471, true, true)
 	end
 end

@@ -61,7 +61,7 @@ function UF:CreateHealthBar(self)
 	health:SetPoint("TOPRIGHT", self)
 	local healthHeight
 	if mystyle == "PlayerPlate" then
-		healthHeight = NDuiDB["Nameplate"]["PPHeight"]
+		healthHeight = NDuiDB["Nameplate"]["PPHealthHeight"]
 	elseif mystyle == "raid" then
 		if self.isPartyFrame then
 			healthHeight = NDuiDB["UFs"]["PartyHeight"]
@@ -105,12 +105,22 @@ function UF:CreateHealthBar(self)
 	self.Health.bg = bg
 end
 
+function UF:UpdateRaidHealthMethod()
+	for _, frame in pairs(oUF.objects) do
+		if frame.mystyle == "raid" then
+			frame:SetHealthUpdateMethod(NDuiDB["UFs"]["FrequentHealth"])
+			frame:SetHealthUpdateSpeed(NDuiDB["UFs"]["HealthFrequency"])
+			frame.Health:ForceUpdate()
+		end
+	end
+end
+
 function UF:CreateHealthText(self)
 	local mystyle = self.mystyle
 	local textFrame = CreateFrame("Frame", nil, self)
 	textFrame:SetAllPoints(self.Health)
 
-	local name = B.CreateFS(textFrame, retVal(self, 13, 12, 12, 12, NDuiDB["Nameplate"]["NameTextSize"]), "", false, "LEFT", 3, -1)
+	local name = B.CreateFS(textFrame, retVal(self, 13, 12, 12, 12, NDuiDB["Nameplate"]["NameTextSize"]), "", false, "LEFT", 3, 0)
 	name:SetJustifyH("LEFT")
 	if mystyle == "raid" then
 		name:SetWidth(self:GetWidth()*.95)
@@ -132,9 +142,9 @@ function UF:CreateHealthText(self)
 		end
 		name:SetScale(NDuiDB["UFs"]["RaidTextScale"])
 	elseif mystyle == "nameplate" then
-		name:SetWidth(self:GetWidth()*.85)
 		name:ClearAllPoints()
 		name:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 5)
+		name:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, 5)
 	else
 		name:SetWidth(self:GetWidth()*.55)
 	end
@@ -149,11 +159,13 @@ function UF:CreateHealthText(self)
 		self:Tag(name, "[nplevel][name]")
 	elseif mystyle == "arena" then
 		self:Tag(name, "[arenaspec] [color][name]")
+	elseif mystyle == "raid" and NDuiDB["UFs"]["SimpleMode"] and NDuiDB["UFs"]["ShowTeamIndex"] and not self.isPartyPet and not self.isPartyFrame then
+		self:Tag(name, "[group].[color][name]")
 	else
 		self:Tag(name, "[color][name]")
 	end
 
-	local hpval = B.CreateFS(textFrame, retVal(self, 14, 13, 13, 13, NDuiDB["Nameplate"]["HealthTextSize"]), "", false, "RIGHT", -3, -1)
+	local hpval = B.CreateFS(textFrame, retVal(self, 14, 13, 13, 13, NDuiDB["Nameplate"]["HealthTextSize"]), "", false, "RIGHT", -3, 0)
 	if mystyle == "raid" then
 		self:Tag(hpval, "[raidhp]")
 		if self.isPartyPet then
@@ -216,7 +228,7 @@ function UF:CreatePowerBar(self)
 	power:SetPoint("BOTTOMRIGHT", self)
 	local powerHeight
 	if mystyle == "PlayerPlate" then
-		powerHeight = NDuiDB["Nameplate"]["PPPHeight"]
+		powerHeight = NDuiDB["Nameplate"]["PPPowerHeight"]
 	elseif mystyle == "raid" then
 		if self.isPartyFrame then
 			powerHeight = NDuiDB["UFs"]["PartyPowerHeight"]
@@ -263,8 +275,13 @@ function UF:CreatePowerText(self)
 	textFrame:SetAllPoints(self.Power)
 
 	local ppval = B.CreateFS(textFrame, retVal(self, 13, 12, 12, 12), "", false, "RIGHT", -3, 2)
-	if self.mystyle == "raid" then
+	local mystyle = self.mystyle
+	if mystyle == "raid" then
 		ppval:SetScale(NDuiDB["UFs"]["RaidTextScale"])
+	elseif mystyle == "player" or mystyle == "target" then
+		ppval:SetPoint("RIGHT", -3, NDuiDB["UFs"]["PlayerPowerOffset"])
+	elseif mystyle == "focus" then
+		ppval:SetPoint("RIGHT", -3, NDuiDB["UFs"]["FocusPowerOffset"])
 	end
 	self:Tag(ppval, "[color][power]")
 	self.powerText = ppval
@@ -351,9 +368,12 @@ function UF:CreateIcons(self)
 		self.QuestIndicator = quest
 	end
 
-	local phase = self:CreateTexture(nil, "OVERLAY")
-	phase:SetPoint("TOP", self, 0, 12)
-	phase:SetSize(22, 22)
+	local parentFrame = CreateFrame("Frame", nil, self)
+	parentFrame:SetAllPoints()
+	parentFrame:SetFrameLevel(5)
+	local phase = parentFrame:CreateTexture(nil, "OVERLAY")
+	phase:SetPoint("CENTER", self.Health)
+	phase:SetSize(24, 24)
 	self.PhaseIndicator = phase
 
 	local ri = self:CreateTexture(nil, "OVERLAY")
@@ -387,9 +407,9 @@ function UF:CreateRaidMark(self)
 		ri:SetPoint("RIGHT", self, "LEFT", -3, 0)
 		ri:SetParent(self.Health)
 	else
-		ri:SetPoint("TOPRIGHT", self, "TOPRIGHT", -30, 10)
+		ri:SetPoint("CENTER", self, "TOP")
 	end
-	local size = retVal(self, 14, 13, 12, 12, 32)
+	local size = retVal(self, 18, 13, 12, 12, 32)
 	ri:SetSize(size, size)
 	self.RaidTargetIndicator = ri
 end
@@ -411,12 +431,15 @@ function UF:CreateCastBar(self)
 	B.CreateSB(cb, true, .3, .7, 1)
 
 	if mystyle == "player" then
+		cb:SetFrameLevel(10)
 		cb:SetSize(NDuiDB["UFs"]["PlayerCBWidth"], NDuiDB["UFs"]["PlayerCBHeight"])
 		createBarMover(cb, L["Player Castbar"], "PlayerCB", C.UFs.Playercb)
 	elseif mystyle == "target" then
+		cb:SetFrameLevel(10)
 		cb:SetSize(NDuiDB["UFs"]["TargetCBWidth"], NDuiDB["UFs"]["TargetCBHeight"])
 		createBarMover(cb, L["Target Castbar"], "TargetCB", C.UFs.Targetcb)
 	elseif mystyle == "focus" then
+		cb:SetFrameLevel(10)
 		cb:SetSize(NDuiDB["UFs"]["FocusCBWidth"], NDuiDB["UFs"]["FocusCBHeight"])
 		createBarMover(cb, L["Focus Castbar"], "FocusCB", C.UFs.Focuscb)
 	elseif mystyle == "boss" or mystyle == "arena" then
@@ -637,14 +660,17 @@ function UF.CustomFilter(element, unit, button, name, _, _, _, _, _, caster, isS
 			return (button.isPlayer or caster == "pet") and NDuiADB["CornerBuffs"][DB.MyClass][spellID] or C.RaidBuffs["ALL"][spellID] or C.RaidBuffs["WARNING"][spellID]
 		end
 	elseif style == "nameplate" or style == "boss" or style == "arena" then
-		if NDuiADB["NameplateFilter"][2][spellID] or C.BlackList[spellID] then
+		if element.__owner.isNameOnly then
+			return NDuiADB["NameplateFilter"][1][spellID] or C.WhiteList[spellID]
+		elseif NDuiADB["NameplateFilter"][2][spellID] or C.BlackList[spellID] then
 			return false
 		elseif element.showStealableBuffs and isStealable and not UnitIsPlayer(unit) then
 			return true
 		elseif NDuiADB["NameplateFilter"][1][spellID] or C.WhiteList[spellID] then
 			return true
 		else
-			return nameplateShowAll or (caster == "player" or caster == "pet" or caster == "vehicle")
+			local auraFilter = NDuiDB["Nameplate"]["AuraFilter"]
+			return (auraFilter == 3 and nameplateShowAll) or (auraFilter ~= 1 and (caster == "player" or caster == "pet" or caster == "vehicle"))
 		end
 	elseif (element.onlyShowPlayer and button.isPlayer) or (not element.onlyShowPlayer and name) then
 		return true
@@ -653,6 +679,21 @@ end
 
 local function auraIconSize(w, n, s)
 	return (w-(n-1)*s)/n
+end
+
+function UF:UpdateTargetAuras()
+	local frame = _G.oUF_Target
+	if not frame then return end
+
+	local element = frame.Auras
+	element.iconsPerRow = NDuiDB["UFs"]["TargetAurasPerRow"]
+
+	local width = frame:GetWidth()
+	local maxLines = element.iconsPerRow and B:Round((element.numBuffs + element.numDebuffs)/element.iconsPerRow)
+	element.size = auraIconSize(width, element.iconsPerRow, element.spacing)
+	element:SetWidth(width)
+	element:SetHeight((element.size + element.spacing) * maxLines)
+	element:ForceUpdate()
 end
 
 function UF:CreateAuras(self)
@@ -667,7 +708,7 @@ function UF:CreateAuras(self)
 		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -10)
 		bu.numBuffs = 20
 		bu.numDebuffs = 15
-		bu.iconsPerRow = 9
+		bu.iconsPerRow = NDuiDB["UFs"]["TargetAurasPerRow"]
 	elseif mystyle == "tot" then
 		bu:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", 0, -5)
 		bu.numBuffs = 0
@@ -697,7 +738,7 @@ function UF:CreateAuras(self)
 		bu.initialAnchor = "BOTTOMLEFT"
 		bu["growth-y"] = "UP"
 		if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
-			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5 + _G.oUF_ClassPowerBar:GetHeight())
+			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 10 + _G.oUF_ClassPowerBar:GetHeight())
 		else
 			bu:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
 		end
@@ -780,7 +821,6 @@ function UF:CreateDebuffs(self)
 end
 
 -- Class Powers
-local margin = C.UFs.BarMargin
 local barWidth, barHeight = unpack(C.UFs.BarSize)
 
 function UF.PostUpdateClassPower(element, cur, max, diff, powerType)
@@ -796,25 +836,24 @@ function UF.PostUpdateClassPower(element, cur, max, diff, powerType)
 
 	if diff then
 		for i = 1, max do
-			element[i]:SetWidth((barWidth - (max-1)*margin)/max)
+			element[i]:SetWidth((barWidth - (max-1)*C.margin)/max)
 		end
 		for i = max + 1, 6 do
 			element[i].bg:Hide()
 		end
 	end
 
-	if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["MaxPowerGlow"] then
-		if (powerType == "COMBO_POINTS" or powerType == "HOLY_POWER") and element.__owner.unit ~= "vehicle" and cur == max then
-			for i = 1, 6 do
-				if element[i]:IsShown() then
-					B.ShowOverlayGlow(element[i].glow)
-				end
-			end
-		else
-			for i = 1, 6 do
-				B.HideOverlayGlow(element[i].glow)
-			end
+	element.thisColor = cur == max and 1 or 2
+	if not element.prevColor or element.prevColor ~= element.thisColor then
+		local r, g, b = 1, 0, 0
+		if element.thisColor == 2 then
+			local color = element.__owner.colors.power[powerType]
+			r, g, b = color[1], color[2], color[3]
 		end
+		for i = 1, #element do
+			element[i]:SetStatusBarColor(r, g, b)
+		end
+		element.prevColor = element.thisColor
 	end
 end
 
@@ -853,7 +892,8 @@ end
 
 function UF:CreateClassPower(self)
 	if self.mystyle == "PlayerPlate" then
-		barWidth, barHeight = self:GetWidth(), self.Health:GetHeight()
+		barWidth = NDuiDB["Nameplate"]["NameplateClassPower"] and NDuiDB["Nameplate"]["PlateWidth"] or NDuiDB["Nameplate"]["PPWidth"]
+		barHeight = NDuiDB["Nameplate"]["PPBarHeight"]
 		C.UFs.BarPoint = {"BOTTOMLEFT", self, "TOPLEFT", 0, 3}
 	end
 
@@ -865,14 +905,14 @@ function UF:CreateClassPower(self)
 	for i = 1, 6 do
 		bars[i] = CreateFrame("StatusBar", nil, bar)
 		bars[i]:SetHeight(barHeight)
-		bars[i]:SetWidth((barWidth - 5*margin) / 6)
+		bars[i]:SetWidth((barWidth - 5*C.margin) / 6)
 		bars[i]:SetStatusBarTexture(DB.normTex)
 		bars[i]:SetFrameLevel(self:GetFrameLevel() + 5)
 		B.CreateBDFrame(bars[i], 0, true)
 		if i == 1 then
 			bars[i]:SetPoint("BOTTOMLEFT")
 		else
-			bars[i]:SetPoint("LEFT", bars[i-1], "RIGHT", margin, 0)
+			bars[i]:SetPoint("LEFT", bars[i-1], "RIGHT", C.margin, 0)
 		end
 
 		bars[i].bg = bar:CreateTexture(nil, "BACKGROUND")
@@ -883,18 +923,13 @@ function UF:CreateClassPower(self)
 		if DB.MyClass == "DEATHKNIGHT" and NDuiDB["UFs"]["RuneTimer"] then
 			bars[i].timer = B.CreateFS(bars[i], 13, "")
 		end
-
-		if NDuiDB["Nameplate"]["ShowPlayerPlate"] then
-			bars[i].glow = CreateFrame("Frame", nil, bars[i])
-			bars[i].glow:SetPoint("TOPLEFT", -3, 2)
-			bars[i].glow:SetPoint("BOTTOMRIGHT", 3, -2)
-		end
 	end
 
 	if DB.MyClass == "DEATHKNIGHT" then
 		bars.colorSpec = true
 		bars.sortOrder = "asc"
 		bars.PostUpdate = UF.PostUpdateRunes
+		bars.__max = 6
 		self.Runes = bars
 	else
 		bars.PostUpdate = UF.PostUpdateClassPower

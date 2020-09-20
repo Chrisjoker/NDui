@@ -31,10 +31,14 @@ tinsert(C.defaultThemes, function()
 	local function reskinButton(bu)
 		bu:SetNormalTexture("")
 		bu:SetPushedTexture("")
+		local hl = bu:GetHighlightTexture()
+		hl:SetColorTexture(1, 1, 1, .25)
+		hl:SetInside()
 		bu.icon:SetTexCoord(unpack(DB.TexCoord))
-		bu.IconBorder:SetAlpha(0)
-		bu:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
-		B.CreateBDFrame(bu, .25)
+		bu.icon:SetInside()
+		bu.IconOverlay:SetInside()
+		bu.bg = B.CreateBDFrame(bu.icon, .25)
+		B.HookIconBorderColor(bu.IconBorder)
 	end
 
 	for i = 1, MAX_TRADE_ITEMS do
@@ -45,5 +49,18 @@ tinsert(C.defaultThemes, function()
 
 		reskinButton(_G["TradePlayerItem"..i.."ItemButton"])
 		reskinButton(_G["TradeRecipientItem"..i.."ItemButton"])
+	end
+
+	local tradeHighlights = {
+		TradeHighlightPlayer,
+		TradeHighlightPlayerEnchant,
+		TradeHighlightRecipient,
+		TradeHighlightRecipientEnchant,
+	}
+	for _, highlight in pairs(tradeHighlights) do
+		B.StripTextures(highlight)
+		highlight:SetFrameStrata("HIGH")
+		local bg = B.CreateBDFrame(highlight, 1)
+		bg:SetBackdropColor(0, 1, 0, .15)
 	end
 end)

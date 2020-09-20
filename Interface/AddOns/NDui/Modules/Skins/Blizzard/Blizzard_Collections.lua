@@ -285,9 +285,10 @@ C.themes["Blizzard_Collections"] = function()
 			spell.selected:SetTexture(DB.textures.pushed)
 			spell:GetRegions():Hide()
 
-			spell.FlyoutArrow:SetTexture(DB.arrowDown)
-			spell.FlyoutArrow:SetSize(8, 8)
-			spell.FlyoutArrow:SetTexCoord(0, 1, 0, 1)
+			local flyoutArrow = spell.FlyoutArrow
+			B.SetupArrow(flyoutArrow, "down")
+			flyoutArrow:SetSize(14, 14)
+			flyoutArrow:SetTexCoord(0, 1, 0, 1)
 
 			B.ReskinIcon(spell.icon)
 		end
@@ -549,10 +550,9 @@ C.themes["Blizzard_Collections"] = function()
 	hooksecurefunc(SetsCollectionFrame, "SetItemFrameQuality", function(_, itemFrame)
 		local ic = itemFrame.Icon
 		if not ic.bg then
-			itemFrame.IconBorder:Hide()
-			itemFrame.IconBorder.Show = B.Dummy
 			ic.bg = B.ReskinIcon(ic)
 		end
+		itemFrame.IconBorder:SetTexture("")
 
 		if itemFrame.collected then
 			local quality = C_TransmogCollection.GetSourceInfo(itemFrame.sourceID).quality

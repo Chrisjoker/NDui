@@ -54,23 +54,10 @@ function TT:HookTooltipMethod()
 	self:HookScript("OnTooltipCleared", TT.HookTooltipCleared)
 end
 
-local function updateBackdropColor(self, r, g, b)
-	self:GetParent().bg:SetBackdropBorderColor(r, g, b)
-end
-
-local function resetBackdropColor(self)
-	self:GetParent().bg:SetBackdropBorderColor(0, 0, 0)
-end
-
 function TT:ReskinRewardIcon()
 	self.Icon:SetTexCoord(unpack(DB.TexCoord))
-	self.bg = B.CreateBDFrame(self, 0)
-	self.bg:SetOutside(self.Icon)
-
-	local iconBorder = self.IconBorder
-	iconBorder:SetAlpha(0)
-	hooksecurefunc(iconBorder, "SetVertexColor", updateBackdropColor)
-	hooksecurefunc(iconBorder, "Hide", resetBackdropColor)
+	self.bg = B.CreateBDFrame(self.Icon, 0)
+	B.HookIconBorderColor(self.IconBorder)
 end
 
 function TT:ReskinTooltipIcons()

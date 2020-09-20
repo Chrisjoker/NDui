@@ -12,6 +12,8 @@ local UnitGUID, GetPlayerInfoByGUID, Ambiguate = UnitGUID, GetPlayerInfoByGUID, 
 local SetCVar, UIFrameFadeIn, UIFrameFadeOut = SetCVar, UIFrameFadeIn, UIFrameFadeOut
 local IsInRaid, IsInGroup, UnitName = IsInRaid, IsInGroup, UnitName
 local GetNumGroupMembers, GetNumSubgroupMembers, UnitGroupRolesAssigned = GetNumGroupMembers, GetNumSubgroupMembers, UnitGroupRolesAssigned
+local C_NamePlate_GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
+local GetSpellCooldown, GetTime = GetSpellCooldown, GetTime
 local INTERRUPTED = INTERRUPTED
 
 -- Init
@@ -157,14 +159,16 @@ function UF:CheckTankStatus(unit)
 end
 
 -- Update unit color
-function UF.UpdateColor(element, unit)
-	local self = element.__owner
+function UF:UpdateColor(_, unit)
+	if not unit or self.unit ~= unit then return end
+
+	local element = self.Health
 	local name = self.unitName
 	local npcID = self.npcID
 	local isCustomUnit = customUnits[name] or customUnits[npcID]
-	local isPlayer = UnitIsPlayer(unit)
-	local status = UnitThreatSituation(self.feedbackUnit, unit) or false -- just in case
-	local reaction = UnitReaction(unit, "player")
+	local isPlayer = self.isPlayer
+	local isFriendly = self.isFriendly
+	local status = self.feedbackUnit and UnitThreatSituation(self.feedbackUnit, unit) or false -- just in case
 	local customColor = NDuiDB["Nameplate"]["CustomColor"]
 	local secureColor = NDuiDB["Nameplate"]["SecureColor"]
 	local transColor = NDuiDB["Nameplate"]["TransColor"]
@@ -178,13 +182,13 @@ function UF.UpdateColor(element, unit)
 	else
 		if isCustomUnit then
 			r, g, b = customColor.r, customColor.g, customColor.b
-		elseif isPlayer and (reaction and reaction >= 5) then
+		elseif isPlayer and isFriendly then
 			if NDuiDB["Nameplate"]["FriendlyCC"] then
 				r, g, b = B.UnitColor(unit)
 			else
 				r, g, b = .3, .3, 1
 			end
-		elseif isPlayer and (reaction and reaction <= 4) and NDuiDB["Nameplate"]["HostileCC"] then
+		elseif isPlayer and (not isFriendly) and NDuiDB["Nameplate"]["HostileCC"] then
 			r, g, b = B.UnitColor(unit)
 		elseif UnitIsTapDenied(unit) and not UnitPlayerControlled(unit) then
 			r, g, b = .6, .6, .6
@@ -237,7 +241,7 @@ function UF:UpdateThreatColor(_, unit)
 	if unit ~= self.unit then return end
 
 	UF.CheckTankStatus(self, unit)
-	UF.UpdateColor(self.Health, unit)
+	UF.UpdateColor(self, _, unit)
 end
 
 function UF:CreateThreatColor(self)
@@ -255,15 +259,16 @@ function UF:UpdateTargetChange()
 	if NDuiDB["Nameplate"]["TargetIndicator"] == 1 then return end
 
 	if UnitIsUnit(self.unit, "target") and not UnitIsUnit(self.unit, "player") then
-		element:SetAlpha(1)
+		element:Show()
 	else
-		element:SetAlpha(0)
+		element:Hide()
 	end
 end
 
-function UF:UpdateTargetIndicator(self)
+function UF:UpdateTargetIndicator()
 	local style = NDuiDB["Nameplate"]["TargetIndicator"]
 	local element = self.TargetIndicator
+	local isNameOnly = self.isNameOnly
 	if style == 1 then
 		element:Hide()
 	else
@@ -271,22 +276,42 @@ function UF:UpdateTargetIndicator(self)
 			element.TopArrow:Show()
 			element.RightArrow:Hide()
 			element.Glow:Hide()
+			element.nameGlow:Hide()
 		elseif style == 3 then
 			element.TopArrow:Hide()
 			element.RightArrow:Show()
 			element.Glow:Hide()
+			element.nameGlow:Hide()
 		elseif style == 4 then
 			element.TopArrow:Hide()
 			element.RightArrow:Hide()
-			element.Glow:Show()
+			if isNameOnly then
+				element.Glow:Hide()
+				element.nameGlow:Show()
+			else
+				element.Glow:Show()
+				element.nameGlow:Hide()
+			end
 		elseif style == 5 then
 			element.TopArrow:Show()
 			element.RightArrow:Hide()
-			element.Glow:Show()
+			if isNameOnly then
+				element.Glow:Hide()
+				element.nameGlow:Show()
+			else
+				element.Glow:Show()
+				element.nameGlow:Hide()
+			end
 		elseif style == 6 then
 			element.TopArrow:Hide()
 			element.RightArrow:Show()
-			element.Glow:Show()
+			if isNameOnly then
+				element.Glow:Hide()
+				element.nameGlow:Show()
+			else
+				element.Glow:Show()
+				element.nameGlow:Hide()
+			end
 		end
 		element:Show()
 	end
@@ -296,7 +321,7 @@ function UF:AddTargetIndicator(self)
 	local frame = CreateFrame("Frame", nil, self)
 	frame:SetAllPoints()
 	frame:SetFrameLevel(0)
-	frame:SetAlpha(0)
+	frame:Hide()
 
 	frame.TopArrow = frame:CreateTexture(nil, "BACKGROUND", nil, -5)
 	frame.TopArrow:SetSize(50, 50)
@@ -314,9 +339,16 @@ function UF:AddTargetIndicator(self)
 	frame.Glow:SetBackdropBorderColor(1, 1, 1)
 	frame.Glow:SetFrameLevel(0)
 
+	frame.nameGlow = frame:CreateTexture(nil, "BACKGROUND", nil, -5)
+	frame.nameGlow:SetSize(150, 80)
+	frame.nameGlow:SetTexture("Interface\\GLUES\\Models\\UI_Draenei\\GenericGlow64")
+	frame.nameGlow:SetVertexColor(0, .6, 1)
+	frame.nameGlow:SetBlendMode("ADD")
+	frame.nameGlow:SetPoint("CENTER", self, "BOTTOM")
+
 	self.TargetIndicator = frame
-	UF:UpdateTargetIndicator(self)
 	self:RegisterEvent("PLAYER_TARGET_CHANGED", UF.UpdateTargetChange, true)
+	UF.UpdateTargetIndicator(self)
 end
 
 -- Quest progress
@@ -332,7 +364,6 @@ function UF:QuestIconCheck()
 	B:RegisterEvent("PLAYER_ENTERING_WORLD", CheckInstanceStatus)
 end
 
-local unitTip = CreateFrame("GameTooltip", "NDuiQuestUnitTip", nil, "GameTooltipTemplate")
 function UF:UpdateQuestUnit(_, unit)
 	if not NDuiDB["Nameplate"]["QuestIndicator"] then return end
 	if isInInstance then
@@ -344,11 +375,11 @@ function UF:UpdateQuestUnit(_, unit)
 	unit = unit or self.unit
 
 	local isLootQuest, questProgress
-	unitTip:SetOwner(UIParent, "ANCHOR_NONE")
-	unitTip:SetUnit(unit)
+	B.ScanTip:SetOwner(UIParent, "ANCHOR_NONE")
+	B.ScanTip:SetUnit(unit)
 
-	for i = 2, unitTip:NumLines() do
-		local textLine = _G[unitTip:GetName().."TextLeft"..i]
+	for i = 2, B.ScanTip:NumLines() do
+		local textLine = _G["NDui_ScanTooltipTextLeft"..i]
 		local text = textLine:GetText()
 		if textLine and text then
 			local r, g, b = textLine:GetTextColor()
@@ -356,7 +387,7 @@ function UF:UpdateQuestUnit(_, unit)
 				if isInGroup and text == DB.MyName or not isInGroup then
 					isLootQuest = true
 
-					local questLine = _G[unitTip:GetName().."TextLeft"..(i+1)]
+					local questLine = _G["NDui_ScanTooltipTextLeft"..(i+1)]
 					local questText = questLine:GetText()
 					if questLine and questText then
 						local current, goal = strmatch(questText, "(%d+)/(%d+)")
@@ -483,19 +514,19 @@ function UF:AddCreatureIcon(self)
 	icon:SetSize(24, 24)
 	icon:Hide()
 
-	self.creatureIcon = icon
+	self.ClassifyIndicator = icon
 end
 
 function UF:UpdateUnitClassify(unit)
-	local class = UnitClassification(unit)
-	if self.creatureIcon then
-		if class and classify[class] then
+	if self.ClassifyIndicator then
+		local class = UnitClassification(unit)
+		if (not self.isNameOnly) and class and classify[class] then
 			local r, g, b, desature = unpack(classify[class])
-			self.creatureIcon:SetVertexColor(r, g, b)
-			self.creatureIcon:SetDesaturated(desature)
-			self.creatureIcon:Show()
+			self.ClassifyIndicator:SetVertexColor(r, g, b)
+			self.ClassifyIndicator:SetDesaturated(desature)
+			self.ClassifyIndicator:Show()
 		else
-			self.creatureIcon:Hide()
+			self.ClassifyIndicator:Hide()
 		end
 	end
 end
@@ -638,6 +669,13 @@ function UF:CreatePlates()
 	self.Health = health
 	self.Health.UpdateColor = UF.UpdateColor
 
+	local title = B.CreateFS(self, NDuiDB["Nameplate"]["NameTextSize"]-1)
+	title:ClearAllPoints()
+	title:SetPoint("TOP", self, "BOTTOM", 0, -10)
+	title:Hide()
+	self:Tag(title, "[npctitle]")
+	self.npcTitle = title
+
 	UF:CreateHealthText(self)
 	UF:CreateCastBar(self)
 	UF:CreateRaidMark(self)
@@ -667,12 +705,11 @@ function UF:UpdateClassPowerAnchor()
 	if not isTargetClassPower then return end
 
 	local bar = _G.oUF_ClassPowerBar
-	local nameplate = C_NamePlate.GetNamePlateForUnit("target")
+	local nameplate = C_NamePlate_GetNamePlateForUnit("target")
 	if nameplate then
 		bar:SetParent(nameplate.unitFrame)
-		bar:SetScale(.7)
 		bar:ClearAllPoints()
-		bar:SetPoint("BOTTOM", nameplate.unitFrame, "TOP", 0, 26)
+		bar:SetPoint("BOTTOM", nameplate.unitFrame.nameText, "TOP", 0, 5)
 		bar:Show()
 	else
 		bar:Hide()
@@ -690,25 +727,127 @@ function UF:UpdateTargetClassPower()
 	else
 		isTargetClassPower = false
 		bar:SetParent(playerPlate.Health)
-		bar:SetScale(1)
 		bar:ClearAllPoints()
 		bar:SetPoint("BOTTOMLEFT", playerPlate.Health, "TOPLEFT", 0, 3)
 		bar:Show()
 	end
 end
 
-function UF:RefreshAllPlates()
+function UF:UpdateNameplateAuras()
+	local element = self.Auras
+	if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
+		element:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 10 + _G.oUF_ClassPowerBar:GetHeight())
+	else
+		element:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
+	end
+	element.numTotal = NDuiDB["Nameplate"]["maxAuras"]
+	element.size = NDuiDB["Nameplate"]["AuraSize"]
+	element.showDebuffType = NDuiDB["Nameplate"]["ColorBorder"]
+	element:SetWidth(self:GetWidth())
+	element:SetHeight((element.size + element.spacing) * 2)
+	element:ForceUpdate()
+end
+
+function UF:RefreshNameplats()
 	for nameplate in pairs(platesList) do
 		nameplate:SetSize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"])
 		nameplate.nameText:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.npcTitle:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"]-1, DB.Font[3])
 		nameplate.Castbar.Time:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
 		nameplate.Castbar.Text:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
 		nameplate.healthValue:SetFont(DB.Font[1], NDuiDB["Nameplate"]["HealthTextSize"], DB.Font[3])
 		nameplate.healthValue:UpdateTag()
-		nameplate.Auras.showDebuffType = NDuiDB["Nameplate"]["ColorBorder"]
-		UF:UpdateTargetIndicator(nameplate)
+		UF.UpdateNameplateAuras(nameplate)
+		UF.UpdateTargetIndicator(nameplate)
+		UF.UpdateTargetChange(nameplate)
 	end
 	UF:UpdateClickableSize()
+end
+
+function UF:RefreshAllPlates()
+	if NDuiDB["Nameplate"]["ShowPlayerPlate"] then
+		UF:ResizePlayerPlate()
+	end
+	UF:RefreshNameplats()
+end
+
+local DisabledElements = {
+	"Health", "Castbar", "HealPredictionAndAbsorb", "PvPClassificationIndicator", "ThreatIndicator"
+}
+function UF:UpdatePlateByType()
+	local name = self.nameText
+	local hpval = self.healthValue
+	local title = self.npcTitle
+	local raidtarget = self.RaidTargetIndicator
+	local classify = self.ClassifyIndicator
+	local questIcon = self.questIcon
+
+	name:ClearAllPoints()
+	raidtarget:ClearAllPoints()
+
+	if self.isNameOnly then
+		for _, element in pairs(DisabledElements) do
+			if self:IsElementEnabled(element) then
+				self:DisableElement(element)
+			end
+		end
+
+		name:SetJustifyH("CENTER")
+		self:Tag(name, "[nplevel][color][name]")
+		name:UpdateTag()
+		name:SetPoint("CENTER", self, "BOTTOM")
+		hpval:Hide()
+		title:Show()
+
+		raidtarget:SetPoint("TOP", title, "BOTTOM", 0, -5)
+		raidtarget:SetParent(self)
+		classify:Hide()
+		if questIcon then questIcon:SetPoint("LEFT", name, "RIGHT", -1, 0) end
+	else
+		for _, element in pairs(DisabledElements) do
+			if not self:IsElementEnabled(element) then
+				self:EnableElement(element)
+			end
+		end
+
+		name:SetJustifyH("LEFT")
+		self:Tag(name, "[nplevel][name]")
+		name:UpdateTag()
+		name:SetPoint("BOTTOMLEFT", self, "TOPLEFT", 0, 5)
+		name:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT", 0, 5)
+		hpval:Show()
+		title:Hide()
+
+		raidtarget:SetPoint("RIGHT", self, "LEFT", -3, 0)
+		raidtarget:SetParent(self.Health)
+		classify:Show()
+		if questIcon then questIcon:SetPoint("LEFT", self, "RIGHT", -1, 0) end
+	end
+
+	UF.UpdateTargetIndicator(self)
+end
+
+function UF:RefreshPlateType(unit)
+	self.reaction = UnitReaction(unit, "player")
+	self.isFriendly = self.reaction and self.reaction >= 5
+	self.isNameOnly = NDuiDB["Nameplate"]["NameOnlyMode"] and self.isFriendly or false
+
+	if self.previousType == nil or self.previousType ~= self.isNameOnly then
+		UF.UpdatePlateByType(self)
+		self.previousType = self.isNameOnly
+	end
+end
+
+function UF:OnUnitFactionChanged(unit)
+	local nameplate = C_NamePlate_GetNamePlateForUnit(unit, issecure())
+	local unitFrame = nameplate and nameplate.unitFrame
+	if unitFrame and unitFrame.unitName then
+		UF.RefreshPlateType(unitFrame, unit)
+	end
+end
+
+function UF:RefreshPlateOnFactionChanged()
+	B:RegisterEvent("UNIT_FACTION", UF.OnUnitFactionChanged)
 end
 
 function UF:PostUpdatePlates(event, unit)
@@ -721,22 +860,27 @@ function UF:PostUpdatePlates(event, unit)
 			guidToPlate[self.unitGUID] = self
 		end
 		self.npcID = B.GetNPCID(self.unitGUID)
+		self.isPlayer = UnitIsPlayer(unit)
 
 		local blizzPlate = self:GetParent().UnitFrame
 		self.widget = blizzPlate.WidgetContainer
+
+		UF.RefreshPlateType(self, unit)
 	elseif event == "NAME_PLATE_UNIT_REMOVED" then
 		if self.unitGUID then
 			guidToPlate[self.unitGUID] = nil
 		end
 	end
 
-	UF.UpdateUnitPower(self)
-	UF.UpdateTargetChange(self)
-	UF.UpdateQuestUnit(self, event, unit)
-	UF.UpdateUnitClassify(self, unit)
+	if event ~= "NAME_PLATE_UNIT_REMOVED" then
+		UF.UpdateUnitPower(self)
+		UF.UpdateTargetChange(self)
+		UF.UpdateQuestUnit(self, event, unit)
+		UF.UpdateUnitClassify(self, unit)
+		UF.UpdateDungeonProgress(self, unit)
+		UF:UpdateClassPowerAnchor()
+	end
 	UF.UpdateExplosives(self, event, unit)
-	UF.UpdateDungeonProgress(self, unit)
-	UF:UpdateClassPowerAnchor()
 end
 
 -- Player Nameplate
@@ -749,37 +893,55 @@ function UF:PlateVisibility(event)
 		UIFrameFadeIn(self.Power, .3, self.Power:GetAlpha(), 1)
 		UIFrameFadeIn(self.Power.bg, .3, self.Power.bg:GetAlpha(), 1)
 	else
-		UIFrameFadeOut(self.Health, 2, self.Health:GetAlpha(), .1)
-		UIFrameFadeOut(self.Health.bg, 2, self.Health.bg:GetAlpha(), .1)
-		UIFrameFadeOut(self.Power, 2, self.Power:GetAlpha(), .1)
-		UIFrameFadeOut(self.Power.bg, 2, self.Power.bg:GetAlpha(), .1)
+		UIFrameFadeOut(self.Health, 2, self.Health:GetAlpha(), 0)
+		UIFrameFadeOut(self.Health.bg, 2, self.Health.bg:GetAlpha(), 0)
+		UIFrameFadeOut(self.Power, 2, self.Power:GetAlpha(), 0)
+		UIFrameFadeOut(self.Power.bg, 2, self.Power.bg:GetAlpha(), 0)
 	end
 end
 
 function UF:ResizePlayerPlate()
 	local plate = _G.oUF_PlayerPlate
 	if plate then
-		local iconSize, margin = NDuiDB["Nameplate"]["PPIconSize"], 2
-		local pHeight, ppHeight = NDuiDB["Nameplate"]["PPHeight"], NDuiDB["Nameplate"]["PPPHeight"]
-		plate:SetSize(iconSize*5 + margin*4, pHeight + ppHeight + C.mult)
-		plate.Health:SetHeight(pHeight)
-		plate.Power:SetHeight(ppHeight)
+		local barWidth = NDuiDB["Nameplate"]["PPWidth"]
+		local barHeight = NDuiDB["Nameplate"]["PPBarHeight"]
+		local healthHeight = NDuiDB["Nameplate"]["PPHealthHeight"]
+		local powerHeight = NDuiDB["Nameplate"]["PPPowerHeight"]
+
+		plate:SetSize(barWidth, healthHeight + powerHeight + C.mult)
+		plate.mover:SetSize(barWidth, healthHeight + powerHeight + C.mult)
+		plate.Health:SetHeight(healthHeight)
+		plate.Power:SetHeight(powerHeight)
+
 		local bars = plate.ClassPower or plate.Runes
 		if bars then
-			for i = 1, 6 do
-				bars[i]:SetHeight(pHeight)
+			local classpowerWidth = NDuiDB["Nameplate"]["NameplateClassPower"] and NDuiDB["Nameplate"]["PlateWidth"] or barWidth
+			_G.oUF_ClassPowerBar:SetSize(classpowerWidth, barHeight)
+			local max = bars.__max
+			for i = 1, max do
+				bars[i]:SetHeight(barHeight)
+				bars[i]:SetWidth((classpowerWidth - (max-1)*C.margin) / max)
 			end
 		end
 		if plate.Stagger then
-			plate.Stagger:SetHeight(pHeight)
+			plate.Stagger:SetHeight(barHeight)
 		end
-		if plate.bu then
+		if plate.lumos then
+			local iconSize = (barWidth - C.margin*4)/5
 			for i = 1, 5 do
-				plate.bu[i]:SetSize(NDuiDB["Nameplate"]["PPIconSize"], NDuiDB["Nameplate"]["PPIconSize"])
+				plate.lumos[i]:SetSize(iconSize, iconSize)
 			end
 		end
 		if plate.dices then
-			plate.dices[1]:SetPoint("BOTTOMLEFT", plate.Health, "TOPLEFT", 0, 8 + plate.Health:GetHeight())
+			local offset = NDuiDB["Nameplate"]["NameplateClassPower"] and C.margin or (C.margin*2 + barHeight)
+			local size = (barWidth - 10)/6
+			for i = 1, 6 do
+				local dice = plate.dices[i]
+				dice:SetSize(size, size)
+				if i == 1 then
+					dice:SetPoint("BOTTOMLEFT", plate.Health, "TOPLEFT", 0, offset)
+				end
+			end
 		end
 	end
 end
@@ -787,9 +949,8 @@ end
 function UF:CreatePlayerPlate()
 	self.mystyle = "PlayerPlate"
 	self:EnableMouse(false)
-	local iconSize, margin = NDuiDB["Nameplate"]["PPIconSize"], 2
-	local pHeight, ppHeight = NDuiDB["Nameplate"]["PPHeight"], NDuiDB["Nameplate"]["PPPHeight"]
-	self:SetSize(iconSize*5 + margin*4, pHeight + ppHeight + C.mult)
+	local healthHeight, powerHeight = NDuiDB["Nameplate"]["PPHealthHeight"], NDuiDB["Nameplate"]["PPPowerHeight"]
+	self:SetSize(NDuiDB["Nameplate"]["PPWidth"], healthHeight + powerHeight + C.mult)
 
 	UF:CreateHealthBar(self)
 	UF:CreatePowerBar(self)
@@ -797,20 +958,84 @@ function UF:CreatePlayerPlate()
 	UF:StaggerBar(self)
 	if NDuiDB["Auras"]["ClassAuras"] then auras:CreateLumos(self) end
 
-	if NDuiDB["Nameplate"]["PPPowerText"] then
-		local textFrame = CreateFrame("Frame", nil, self.Power)
-		textFrame:SetAllPoints()
-		local power = B.CreateFS(textFrame, 14, "")
-		self:Tag(power, "[pppower]")
-	end
+	local textFrame = CreateFrame("Frame", nil, self.Power)
+	textFrame:SetAllPoints()
+	textFrame:SetFrameLevel(self:GetFrameLevel() + 5)
+	self.powerText = B.CreateFS(textFrame, 14)
+	self:Tag(self.powerText, "[pppower]")
+	UF:TogglePlatePower()
 
+	UF:CreateGCDTicker(self)
 	UF:UpdateTargetClassPower()
+	UF:TogglePlateVisibility()
+end
 
-	if NDuiDB["Nameplate"]["PPHideOOC"] then
-		self:RegisterEvent("UNIT_EXITED_VEHICLE", UF.PlateVisibility)
-		self:RegisterEvent("UNIT_ENTERED_VEHICLE", UF.PlateVisibility)
-		self:RegisterEvent("PLAYER_REGEN_ENABLED", UF.PlateVisibility, true)
-		self:RegisterEvent("PLAYER_REGEN_DISABLED", UF.PlateVisibility, true)
-		self:RegisterEvent("PLAYER_ENTERING_WORLD", UF.PlateVisibility, true)
+function UF:TogglePlatePower()
+	local plate = _G.oUF_PlayerPlate
+	if not plate then return end
+
+	plate.powerText:SetShown(NDuiDB["Nameplate"]["PPPowerText"])
+end
+
+function UF:TogglePlateVisibility()
+	local plate = _G.oUF_PlayerPlate
+	if not plate then return end
+
+	if NDuiDB["Nameplate"]["PPFadeout"] then
+		plate:RegisterEvent("UNIT_EXITED_VEHICLE", UF.PlateVisibility)
+		plate:RegisterEvent("UNIT_ENTERED_VEHICLE", UF.PlateVisibility)
+		plate:RegisterEvent("PLAYER_REGEN_ENABLED", UF.PlateVisibility, true)
+		plate:RegisterEvent("PLAYER_REGEN_DISABLED", UF.PlateVisibility, true)
+		plate:RegisterEvent("PLAYER_ENTERING_WORLD", UF.PlateVisibility, true)
+		UF.PlateVisibility(plate)
+	else
+		plate:UnregisterEvent("UNIT_EXITED_VEHICLE", UF.PlateVisibility)
+		plate:UnregisterEvent("UNIT_ENTERED_VEHICLE", UF.PlateVisibility)
+		plate:UnregisterEvent("PLAYER_REGEN_ENABLED", UF.PlateVisibility)
+		plate:UnregisterEvent("PLAYER_REGEN_DISABLED", UF.PlateVisibility)
+		plate:UnregisterEvent("PLAYER_ENTERING_WORLD", UF.PlateVisibility)
+		UF.PlateVisibility(plate, "PLAYER_REGEN_DISABLED")
 	end
+end
+
+function UF:UpdateGCDTicker(elapsed)
+	local start, duration = GetSpellCooldown(61304)
+	if start > 0 and duration > 0 then
+		if self.duration ~= duration then
+			self:SetMinMaxValues(0, duration)
+			self.duration = duration
+		end
+		self:SetValue(GetTime() - start)
+		self.spark:Show()
+	else
+		self.spark:Hide()
+	end
+end
+
+function UF:CreateGCDTicker(self)
+	local ticker = CreateFrame("StatusBar", nil, self.Power)
+	ticker:SetFrameLevel(self:GetFrameLevel() + 3)
+	ticker:SetStatusBarTexture(DB.normTex)
+	ticker:GetStatusBarTexture():SetAlpha(0)
+	ticker:SetAllPoints()
+
+	local spark = ticker:CreateTexture(nil, "OVERLAY")
+	spark:SetTexture(DB.sparkTex)
+	spark:SetBlendMode("ADD")
+	spark:SetPoint("TOPLEFT", ticker:GetStatusBarTexture(), "TOPRIGHT", -10, 10)
+	spark:SetPoint("BOTTOMRIGHT", ticker:GetStatusBarTexture(), "BOTTOMRIGHT", 10, -10)
+	ticker.spark = spark
+
+	ticker:SetScript("OnUpdate", UF.UpdateGCDTicker)
+	self.GCDTicker = ticker
+
+	UF:ToggleGCDTicker()
+end
+
+function UF:ToggleGCDTicker()
+	local plate = _G.oUF_PlayerPlate
+	local ticker = plate and plate.GCDTicker
+	if not ticker then return end
+
+	ticker:SetShown(NDuiDB["Nameplate"]["PPGCDTicker"])
 end

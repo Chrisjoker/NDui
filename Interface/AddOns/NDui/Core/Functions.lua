@@ -169,7 +169,8 @@ do
 	local essenceDescription = GetSpellDescription(277253)
 	local ITEM_SPELL_TRIGGER_ONEQUIP = ITEM_SPELL_TRIGGER_ONEQUIP
 	local RETRIEVING_ITEM_INFO = RETRIEVING_ITEM_INFO
-	local tip = CreateFrame("GameTooltip", "NDui_iLvlTooltip", nil, "GameTooltipTemplate")
+	local tip = CreateFrame("GameTooltip", "NDui_ScanTooltip", nil, "GameTooltipTemplate")
+	B.ScanTip = tip
 
 	function B:InspectItemTextures()
 		if not tip.gems then
@@ -278,7 +279,7 @@ do
 				tip:SetHyperlink(link)
 			end
 
-			local firstLine = _G.NDui_iLvlTooltipTextLeft1:GetText()
+			local firstLine = _G.NDui_ScanTooltipTextLeft1:GetText()
 			if firstLine == RETRIEVING_ITEM_INFO then
 				return "tooSoon"
 			end
@@ -409,9 +410,7 @@ do
 		if self.title then
 			GameTooltip:AddLine(self.title)
 		end
-		if self.text and strfind(self.text, "|H.+|h") then
-			GameTooltip:SetHyperlink(self.text)
-		elseif tonumber(self.text) then
+		if tonumber(self.text) then
 			GameTooltip:SetSpellByID(self.text)
 		elseif self.text then
 			local r, g, b = 1, 1, 1
@@ -432,12 +431,6 @@ do
 		self.color = color
 		self:SetScript("OnEnter", Tooltip_OnEnter)
 		self:SetScript("OnLeave", B.HideTooltip)
-	end
-
-	-- Frame
-	function B:Scale(x)
-		local mult = C.mult
-		return mult * floor(x / mult + .5)
 	end
 
 	-- Glow parent
@@ -484,7 +477,7 @@ do
 
 		self.Shadow = CreateFrame("Frame", nil, frame)
 		self.Shadow:SetOutside(self, size or 4, size or 4)
-		self.Shadow:SetBackdrop({edgeFile = DB.glowTex, edgeSize = B:Scale(size or 5)})
+		self.Shadow:SetBackdrop({edgeFile = DB.glowTex, edgeSize = size or 5})
 		self.Shadow:SetBackdropBorderColor(0, 0, 0, size and 1 or .4)
 		self.Shadow:SetFrameLevel(1)
 
@@ -495,7 +488,7 @@ end
 -- UI skins
 do
 	-- ls, Azil, and Simpy made this to replace Blizzard's SetBackdrop API while the textures can't snap
-	local PIXEL_BORDERS = {"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT", "TOP", "BOTTOM", "LEFT", "RIGHT"}
+	local PIXEL_BORDERS = {"TOP", "BOTTOM", "LEFT", "RIGHT"}
 
 	function B:SetBackdrop(frame, a)
 		local borders = frame.pixelBorders
@@ -505,11 +498,6 @@ do
 
 		borders.CENTER:SetPoint("TOPLEFT", frame)
 		borders.CENTER:SetPoint("BOTTOMRIGHT", frame)
-
-		borders.TOPLEFT:SetSize(size, size)
-		borders.TOPRIGHT:SetSize(size, size)
-		borders.BOTTOMLEFT:SetSize(size, size)
-		borders.BOTTOMRIGHT:SetSize(size, size)
 
 		borders.TOP:SetHeight(size)
 		borders.BOTTOM:SetHeight(size)
@@ -553,22 +541,17 @@ do
 			borders.CENTER = frame:CreateTexture(nil, "BACKGROUND", nil, -1)
 			borders.CENTER:SetTexture(DB.bdTex)
 
-			borders.TOPLEFT:Point("BOTTOMRIGHT", borders.CENTER, "TOPLEFT", C.mult, -C.mult)
-			borders.TOPRIGHT:Point("BOTTOMLEFT", borders.CENTER, "TOPRIGHT", -C.mult, -C.mult)
-			borders.BOTTOMLEFT:Point("TOPRIGHT", borders.CENTER, "BOTTOMLEFT", C.mult, C.mult)
-			borders.BOTTOMRIGHT:Point("TOPLEFT", borders.CENTER, "BOTTOMRIGHT", -C.mult, C.mult)
+			borders.TOP:SetPoint("BOTTOMLEFT", borders.CENTER, "TOPLEFT", C.mult, -C.mult)
+			borders.TOP:SetPoint("BOTTOMRIGHT", borders.CENTER, "TOPRIGHT", -C.mult, -C.mult)
 
-			borders.TOP:Point("TOPLEFT", borders.TOPLEFT, "TOPRIGHT", 0, 0)
-			borders.TOP:Point("TOPRIGHT", borders.TOPRIGHT, "TOPLEFT", 0, 0)
+			borders.BOTTOM:SetPoint("TOPLEFT", borders.CENTER, "BOTTOMLEFT", C.mult, C.mult)
+			borders.BOTTOM:SetPoint("TOPRIGHT", borders.CENTER, "BOTTOMRIGHT", -C.mult, C.mult)
 
-			borders.BOTTOM:Point("BOTTOMLEFT", borders.BOTTOMLEFT, "BOTTOMRIGHT", 0, 0)
-			borders.BOTTOM:Point("BOTTOMRIGHT", borders.BOTTOMRIGHT, "BOTTOMLEFT", 0, 0)
+			borders.LEFT:SetPoint("TOPRIGHT", borders.TOP, "TOPLEFT", 0, 0)
+			borders.LEFT:SetPoint("BOTTOMRIGHT", borders.BOTTOM, "BOTTOMLEFT", 0, 0)
 
-			borders.LEFT:Point("TOPLEFT", borders.TOPLEFT, "BOTTOMLEFT", 0, 0)
-			borders.LEFT:Point("BOTTOMLEFT", borders.BOTTOMLEFT, "TOPLEFT", 0, 0)
-
-			borders.RIGHT:Point("TOPRIGHT", borders.TOPRIGHT, "BOTTOMRIGHT", 0, 0)
-			borders.RIGHT:Point("BOTTOMRIGHT", borders.BOTTOMRIGHT, "TOPRIGHT", 0, 0)
+			borders.RIGHT:SetPoint("TOPLEFT", borders.TOP, "TOPRIGHT", 0, 0)
+			borders.RIGHT:SetPoint("BOTTOMLEFT", borders.BOTTOM, "BOTTOMRIGHT", 0, 0)
 
 			hooksecurefunc(frame, "SetBackdropColor", B.SetBackdropColor_Hook)
 			hooksecurefunc(frame, "SetBackdropBorderColor", B.SetBackdropBorderColor_Hook)
@@ -653,7 +636,7 @@ do
 
 	function B:AuraIcon(highlight)
 		self.CD = CreateFrame("Cooldown", nil, self, "CooldownFrameTemplate")
-		self.CD:SetAllPoints()
+		self.CD:SetInside()
 		self.CD:SetReverse(true)
 		B.PixelIcon(self, nil, highlight)
 		B.CreateSD(self)
@@ -670,6 +653,40 @@ do
 		bu:GetHighlightTexture():SetTexCoord(0, .5, 0, .5)
 
 		return bu
+	end
+
+	local AtlasToQuality = {
+		["auctionhouse-itemicon-border-gray"] = LE_ITEM_QUALITY_POOR,
+		["auctionhouse-itemicon-border-white"] = LE_ITEM_QUALITY_COMMON,
+		["auctionhouse-itemicon-border-green"] = LE_ITEM_QUALITY_UNCOMMON,
+		["auctionhouse-itemicon-border-blue"] = LE_ITEM_QUALITY_RARE,
+		["auctionhouse-itemicon-border-purple"] = LE_ITEM_QUALITY_EPIC,
+		["auctionhouse-itemicon-border-orange"] = LE_ITEM_QUALITY_LEGENDARY,
+		["auctionhouse-itemicon-border-artifact"] = LE_ITEM_QUALITY_ARTIFACT,
+		["auctionhouse-itemicon-border-account"] = LE_ITEM_QUALITY_HEIRLOOM,
+	}
+	local function updateIconBorderColorByAtlas(self, atlas)
+		local quality = AtlasToQuality[atlas]
+		local color = DB.QualityColors[quality or 1]
+		self.__owner.bg:SetBackdropBorderColor(color.r, color.g, color.b)
+	end
+	local function updateIconBorderColor(self, r, g, b)
+		if r == .65882 then r, g, b = 0, 0, 0 end
+		self.__owner.bg:SetBackdropBorderColor(r, g, b)
+	end
+	local function resetIconBorderColor(self)
+		self.__owner.bg:SetBackdropBorderColor(0, 0, 0)
+	end
+	function B:HookIconBorderColor()
+		self:SetAlpha(0)
+		self.__owner = self:GetParent()
+		if not self.__owner.bg then return end
+		if self.__owner.useCircularIconBorder then
+			hooksecurefunc(self, "SetAtlas", updateIconBorderColorByAtlas)
+		else
+			hooksecurefunc(self, "SetVertexColor", updateIconBorderColor)
+		end
+		hooksecurefunc(self, "Hide", resetIconBorderColor)
 	end
 
 	-- Handle statusbar
@@ -845,7 +862,7 @@ do
 		local thumb = GrabScrollBarElement(self, "ThumbTexture") or GrabScrollBarElement(self, "thumbTexture") or self.GetThumbTexture and self:GetThumbTexture()
 		if thumb then
 			thumb:SetAlpha(0)
-			thumb:SetWidth(17)
+			thumb:SetWidth(16)
 			self.thumb = thumb
 
 			local bg = B.CreateBDFrame(self, 0)
@@ -870,25 +887,20 @@ do
 		local frameName = self.GetName and self:GetName()
 		local down = self.Button or frameName and (_G[frameName.."Button"] or _G[frameName.."_Button"])
 
-		down:ClearAllPoints()
-		down:SetPoint("RIGHT", -18, 2)
-		B.ReskinArrow(down, "down")
-		down:SetSize(20, 20)
-
 		local bg = B.CreateBDFrame(self, 0)
 		bg:SetPoint("TOPLEFT", 16, -4)
 		bg:SetPoint("BOTTOMRIGHT", -18, 8)
 		B.CreateGradient(bg)
+
+		down:ClearAllPoints()
+		down:SetPoint("RIGHT", bg, -2, 0)
+		B.ReskinArrow(down, "down")
 	end
 
 	-- Handle close button
 	function B:Texture_OnEnter()
 		if self:IsEnabled() then
-			if self.pixels then
-				for _, pixel in pairs(self.pixels) do
-					pixel:SetVertexColor(cr, cg, cb)
-				end
-			elseif self.bg then
+			if self.bg then
 				self.bg:SetBackdropColor(cr, cg, cb, .25)
 			else
 				self.bgTex:SetVertexColor(cr, cg, cb)
@@ -897,11 +909,7 @@ do
 	end
 
 	function B:Texture_OnLeave()
-		if self.pixels then
-			for _, pixel in pairs(self.pixels) do
-				pixel:SetVertexColor(1, 1, 1)
-			end
-		elseif self.bg then
+		if self.bg then
 			self.bg:SetBackdropColor(0, 0, 0, .25)
 		else
 			self.bgTex:SetVertexColor(1, 1, 1)
@@ -909,7 +917,7 @@ do
 	end
 
 	function B:ReskinClose(a1, p, a2, x, y)
-		self:SetSize(17, 17)
+		self:SetSize(16, 16)
 
 		if not a1 then
 			self:SetPoint("TOPRIGHT", -6, -6)
@@ -928,16 +936,11 @@ do
 		dis:SetDrawLayer("OVERLAY")
 		dis:SetAllPoints()
 
-		self.pixels = {}
-		for i = 1, 2 do
-			local tex = self:CreateTexture()
-			tex:SetColorTexture(1, 1, 1)
-			tex:SetSize(11, 2)
-			tex:SetPoint("CENTER")
-			tex:SetRotation(rad((i-1/2)*90))
-			tinsert(self.pixels, tex)
-		end
-
+		local tex = self:CreateTexture()
+		tex:SetTexture(DB.closeTex)
+		tex:SetAllPoints()
+		self.bgTex = tex
+	
 		self:HookScript("OnEnter", B.Texture_OnEnter)
 		self:HookScript("OnLeave", B.Texture_OnLeave)
 	end
@@ -963,15 +966,19 @@ do
 	B.ReskinInput = B.ReskinEditBox -- Deprecated
 
 	-- Handle arrows
-	local direcIndex = {
-		["up"] = DB.arrowUp,
-		["down"] = DB.arrowDown,
-		["left"] = DB.arrowLeft,
-		["right"] = DB.arrowRight,
+	local arrowDegree = {
+		["up"] = 0,
+		["down"] = 180,
+		["left"] = 90,
+		["right"] = -90,
 	}
+	function B:SetupArrow(direction)
+		self:SetTexture(DB.ArrowUp)
+		self:SetRotation(rad(arrowDegree[direction]))
+	end
 
 	function B:ReskinArrow(direction)
-		self:SetSize(17, 17)
+		self:SetSize(16, 16)
 		B.Reskin(self, true)
 
 		self:SetDisabledTexture(DB.bdTex)
@@ -981,9 +988,8 @@ do
 		dis:SetAllPoints()
 
 		local tex = self:CreateTexture(nil, "ARTWORK")
-		tex:SetTexture(direcIndex[direction])
-		tex:SetSize(8, 8)
-		tex:SetPoint("CENTER")
+		tex:SetAllPoints()
+		B.SetupArrow(tex, direction)
 		self.bgTex = tex
 
 		self:HookScript("OnEnter", B.Texture_OnEnter)
@@ -994,9 +1000,9 @@ do
 		B.StripTextures(self)
 		B.Reskin(self)
 		self.Text:SetPoint("CENTER")
-		self.Icon:SetTexture(DB.arrowRight)
-		self.Icon:SetPoint("RIGHT", self, "RIGHT", -5, 0)
-		self.Icon:SetSize(8, 8)
+		B.SetupArrow(self.Icon, "right")
+		self.Icon:SetPoint("RIGHT")
+		self.Icon:SetSize(14, 14)
 	end
 
 	function B:ReskinNavBar()
@@ -1013,8 +1019,8 @@ do
 		B.Reskin(overflowButton, true)
 
 		local tex = overflowButton:CreateTexture(nil, "ARTWORK")
-		tex:SetTexture(DB.arrowLeft)
-		tex:SetSize(8, 8)
+		B.SetupArrow(tex, "left")
+		tex:SetSize(14, 14)
 		tex:SetPoint("CENTER")
 		overflowButton.bgTex = tex
 
@@ -1106,9 +1112,9 @@ do
 		self:SetNormalTexture("")
 
 		if texture and texture ~= "" then
-			if texture:find("Plus") then
+			if strfind(texture, "Plus") then
 				self.expTex:SetTexCoord(0, .4375, 0, .4375)
-			elseif texture:find("Minus") then
+			elseif strfind(texture, "Minus") then
 				self.expTex:SetTexCoord(.5625, 1, 0, .4375)
 			end
 			self.bg:Show()
@@ -1139,40 +1145,25 @@ do
 		hooksecurefunc(self, "SetNormalTexture", UpdateExpandOrCollapse)
 	end
 
+	local buttonNames = {"MaximizeButton", "MinimizeButton"}
 	function B:ReskinMinMax()
-		for _, name in next, {"MaximizeButton", "MinimizeButton"} do
+		for _, name in next, buttonNames do
 			local button = self[name]
 			if button then
-				button:SetSize(17, 17)
+				button:SetSize(16, 16)
 				button:ClearAllPoints()
 				button:SetPoint("CENTER", -3, 0)
 				B.Reskin(button)
 
-				button.pixels = {}
-
 				local tex = button:CreateTexture()
-				tex:SetColorTexture(1, 1, 1)
-				tex:SetSize(11, 2)
+				tex:SetSize(16, 16)
 				tex:SetPoint("CENTER")
-				tex:SetRotation(math.rad(45))
-				tinsert(button.pixels, tex)
-
-				local hline = button:CreateTexture()
-				hline:SetColorTexture(1, 1, 1)
-				hline:SetSize(7, 2)
-				tinsert(button.pixels, hline)
-
-				local vline = button:CreateTexture()
-				vline:SetColorTexture(1, 1, 1)
-				vline:SetSize(2, 7)
-				tinsert(button.pixels, vline)
+				button.bgTex = tex
 
 				if name == "MaximizeButton" then
-					hline:SetPoint("TOPRIGHT", -4, -4)
-					vline:SetPoint("TOPRIGHT", -4, -4)
+					B.SetupArrow(tex, "up")
 				else
-					hline:SetPoint("BOTTOMLEFT", 4, 4)
-					vline:SetPoint("BOTTOMLEFT", 4, 4)
+					B.SetupArrow(tex, "down")
 				end
 
 				button:SetScript("OnEnter", B.Texture_OnEnter)
@@ -1196,7 +1187,6 @@ do
 	function B:ReskinGarrisonPortrait()
 		self.Portrait:ClearAllPoints()
 		self.Portrait:SetPoint("TOPLEFT", 4, -4)
-		self.Portrait:SetMask("Interface\\Buttons\\WHITE8X8")
 		self.PortraitRing:Hide()
 		self.PortraitRingQuality:SetTexture("")
 		if self.Highlight then self.Highlight:Hide() end
@@ -1303,7 +1293,6 @@ do
 		bu:SetSize(width, height)
 		if type(text) == "boolean" then
 			B.PixelIcon(bu, fontSize, true)
-			B.CreateBD(bu, .3)
 		else
 			B.Reskin(bu)
 			bu.text = B.CreateFS(bu, fontSize or 14, text, true)
@@ -1383,8 +1372,11 @@ do
 		dd.Text:SetPoint("RIGHT", -5, 0)
 		dd.options = {}
 
-		local bu = B.CreateGear(dd)
-		bu:SetPoint("LEFT", dd, "RIGHT", -2, 0)
+		local bu = CreateFrame("Button", nil, dd)
+		bu:SetPoint("RIGHT", -5, 0)
+		B.ReskinArrow(bu, "down")
+		bu:SetSize(18, 18)
+
 		local list = CreateFrame("Frame", nil, dd)
 		list:SetPoint("TOP", dd, "BOTTOM", 0, -2)
 		B.CreateBD(list, 1)
@@ -1473,11 +1465,20 @@ do
 		self:ClearFocus()
 	end
 
-	function B:CreateSlider(name, minValue, maxValue, x, y, width)
+	local function resetSliderValue(self)
+		local slider = self.__owner
+		if slider.__default then
+			slider:SetValue(slider.__default)
+		end
+	end
+
+	function B:CreateSlider(name, minValue, maxValue, step, x, y, width)
 		local slider = CreateFrame("Slider", nil, self, "OptionsSliderTemplate")
 		slider:SetPoint("TOPLEFT", x, y)
 		slider:SetWidth(width or 200)
 		slider:SetMinMaxValues(minValue, maxValue)
+		slider:SetValueStep(step)
+		slider:SetObeyStepOnDrag(true)
 		slider:SetHitRectInsets(0, 0, 0, 0)
 		B.ReskinSlider(slider)
 
@@ -1494,6 +1495,11 @@ do
 		slider.value:SetJustifyH("CENTER")
 		slider.value.__owner = slider
 		slider.value:SetScript("OnEnterPressed", updateSliderEditBox)
+
+		slider.clicker = CreateFrame("Button", nil, slider)
+		slider.clicker:SetAllPoints(slider.Text)
+		slider.clicker.__owner = slider
+		slider.clicker:SetScript("OnDoubleClick", resetSliderValue)
 
 		return slider
 	end
@@ -1532,17 +1538,6 @@ do
 		end
 	end
 
-	local function Point(frame, arg1, arg2, arg3, arg4, arg5, ...)
-		if arg2 == nil then arg2 = frame:GetParent() end
-
-		if type(arg2) == "number" then arg2 = B:Scale(arg2) end
-		if type(arg3) == "number" then arg3 = B:Scale(arg3) end
-		if type(arg4) == "number" then arg4 = B:Scale(arg4) end
-		if type(arg5) == "number" then arg5 = B:Scale(arg5) end
-
-		frame:SetPoint(arg1, arg2, arg3, arg4, arg5, ...)
-	end
-
 	local function SetInside(frame, anchor, xOffset, yOffset, anchor2)
 		xOffset = xOffset or C.mult
 		yOffset = yOffset or C.mult
@@ -1550,8 +1545,8 @@ do
 
 		DisablePixelSnap(frame)
 		frame:ClearAllPoints()
-		frame:Point("TOPLEFT", anchor, "TOPLEFT", xOffset, -yOffset)
-		frame:Point("BOTTOMRIGHT", anchor2 or anchor, "BOTTOMRIGHT", -xOffset, yOffset)
+		frame:SetPoint("TOPLEFT", anchor, "TOPLEFT", xOffset, -yOffset)
+		frame:SetPoint("BOTTOMRIGHT", anchor2 or anchor, "BOTTOMRIGHT", -xOffset, yOffset)
 	end
 
 	local function SetOutside(frame, anchor, xOffset, yOffset, anchor2)
@@ -1561,13 +1556,12 @@ do
 
 		DisablePixelSnap(frame)
 		frame:ClearAllPoints()
-		frame:Point("TOPLEFT", anchor, "TOPLEFT", -xOffset, yOffset)
-		frame:Point("BOTTOMRIGHT", anchor2 or anchor, "BOTTOMRIGHT", xOffset, -yOffset)
+		frame:SetPoint("TOPLEFT", anchor, "TOPLEFT", -xOffset, yOffset)
+		frame:SetPoint("BOTTOMRIGHT", anchor2 or anchor, "BOTTOMRIGHT", xOffset, -yOffset)
 	end
 
 	local function addapi(object)
 		local mt = getmetatable(object).__index
-		if not object.Point then mt.Point = Point end
 		if not object.SetInside then mt.SetInside = SetInside end
 		if not object.SetOutside then mt.SetOutside = SetOutside end
 		if not object.DisabledPixelSnap then

@@ -512,6 +512,14 @@ function module:UpdateAllBags()
 	end
 end
 
+function module:OpenBags()
+	OpenAllBags(true)
+end
+
+function module:CloseBags()
+	CloseAllBags()
+end
+
 function module:OnLogin()
 	if not NDuiDB["Bags"]["Enable"] then return end
 
@@ -559,8 +567,8 @@ function module:OnLogin()
 		f.equipment = MyContainer:New("Equipment", {Columns = bagsWidth, Parent = f.main})
 		f.equipment:SetFilter(filters.bagEquipment, true)
 
-		f.consumble = MyContainer:New("Consumble", {Columns = bagsWidth, Parent = f.main})
-		f.consumble:SetFilter(filters.bagConsumble, true)
+		f.consumable = MyContainer:New("Consumable", {Columns = bagsWidth, Parent = f.main})
+		f.consumable:SetFilter(filters.bagConsumable, true)
 
 		f.bagCompanion = MyContainer:New("BagCompanion", {Columns = bagsWidth, Parent = f.main})
 		f.bagCompanion:SetFilter(filters.bagMountPet, true)
@@ -585,8 +593,8 @@ function module:OnLogin()
 		f.bankEquipment = MyContainer:New("BankEquipment", {Columns = bankWidth, Parent = f.bank})
 		f.bankEquipment:SetFilter(filters.bankEquipment, true)
 
-		f.bankConsumble = MyContainer:New("BankConsumble", {Columns = bankWidth, Parent = f.bank})
-		f.bankConsumble:SetFilter(filters.bankConsumble, true)
+		f.bankConsumable = MyContainer:New("BankConsumable", {Columns = bankWidth, Parent = f.bank})
+		f.bankConsumable:SetFilter(filters.bankConsumable, true)
 
 		f.bankCompanion = MyContainer:New("BankCompanion", {Columns = bankWidth, Parent = f.bank})
 		f.bankCompanion:SetFilter(filters.bankMountPet, true)
@@ -599,8 +607,8 @@ function module:OnLogin()
 		f.reagent:SetPoint("BOTTOMLEFT", f.bank)
 		f.reagent:Hide()
 
-		module.BagGroup = {f.azeriteItem, f.equipment, f.bagCompanion, f.bagGoods, f.consumble, f.bagFavourite, f.junk}
-		module.BankGroup = {f.bankAzeriteItem, f.bankEquipment, f.bankLegendary, f.bankCompanion, f.bankGoods, f.bankConsumble, f.bankFavourite}
+		module.BagGroup = {f.azeriteItem, f.equipment, f.bagCompanion, f.bagGoods, f.consumable, f.bagFavourite, f.junk}
+		module.BankGroup = {f.bankAzeriteItem, f.bankEquipment, f.bankLegendary, f.bankCompanion, f.bankGoods, f.bankConsumable, f.bankFavourite}
 	end
 
 	local initBagType
@@ -638,26 +646,14 @@ function module:OnLogin()
 		self.Count:SetPoint("BOTTOMRIGHT", -1, 2)
 		self.Count:SetFont(unpack(DB.Font))
 		self.Cooldown:SetInside()
+		self.IconOverlay:SetInside()
 
 		B.CreateBD(self, .3)
 		self:SetBackdropColor(.3, .3, .3, .3)
 
-		self.Azerite = self:CreateTexture(nil, "ARTWORK")
-		self.Azerite:SetAtlas("AzeriteIconFrame")
-		self.Azerite:SetInside()
-
-		self.Corrupt = self:CreateTexture(nil, "ARTWORK")
-		self.Corrupt:SetAtlas("Nzoth-inventory-icon")
-		self.Corrupt:SetInside()
-
 		local parentFrame = CreateFrame("Frame", nil, self)
 		parentFrame:SetAllPoints()
 		parentFrame:SetFrameLevel(5)
-
-		self.junkIcon = parentFrame:CreateTexture(nil, "ARTWORK")
-		self.junkIcon:SetAtlas("bags-junkcoin")
-		self.junkIcon:SetSize(20, 20)
-		self.junkIcon:SetPoint("TOPRIGHT", 1, 0)
 
 		self.Favourite = parentFrame:CreateTexture(nil, "ARTWORK")
 		self.Favourite:SetAtlas("collections-icon-favorites")
@@ -699,6 +695,15 @@ function module:OnLogin()
 		return item.link and item.level and item.rarity > 1 and (item.subType == EJ_LOOT_SLOT_FILTER_ARTIFACT_RELIC or item.classID == LE_ITEM_CLASS_WEAPON or item.classID == LE_ITEM_CLASS_ARMOR)
 	end
 
+	local function GetIconOverlayAtlas(item)
+		if not item.link then return end
+		if C_AzeriteEmpoweredItem_IsAzeriteEmpoweredItemByID(item.link) then
+			return "AzeriteIconFrame"
+		elseif IsCorruptedItem(item.link) then
+			return "Nzoth-inventory-icon"
+		end
+	end
+
 	function MyButton:OnUpdate(item)
 		if MerchantFrame:IsShown() then
 			if item.isInSet then
@@ -708,28 +713,26 @@ function module:OnLogin()
 			end
 		end
 
-		if (MerchantFrame:IsShown() or customJunkEnable) and (item.rarity == LE_ITEM_QUALITY_POOR or NDuiADB["CustomJunkList"][item.id]) and item.sellPrice > 0 then
-			self.junkIcon:SetAlpha(1)
-		else
-			self.junkIcon:SetAlpha(0)
+		if self.JunkIcon then
+			if (MerchantFrame:IsShown() or customJunkEnable) and (item.rarity == LE_ITEM_QUALITY_POOR or NDuiADB["CustomJunkList"][item.id]) and item.sellPrice > 0 then
+				self.JunkIcon:Show()
+			else
+				self.JunkIcon:Hide()
+			end
 		end
 
-		if item.link and C_AzeriteEmpoweredItem_IsAzeriteEmpoweredItemByID(item.link) then
-			self.Azerite:SetAlpha(1)
+		local atlas = GetIconOverlayAtlas(item)
+		if atlas then
+			self.IconOverlay:SetAtlas(atlas)
+			self.IconOverlay:Show()
 		else
-			self.Azerite:SetAlpha(0)
-		end
-
-		if item.link and IsCorruptedItem(item.link) then
-			self.Corrupt:SetAlpha(1)
-		else
-			self.Corrupt:SetAlpha(0)
+			self.IconOverlay:Hide()
 		end
 
 		if NDuiDB["Bags"]["FavouriteItems"][item.id] then
-			self.Favourite:SetAlpha(1)
+			self.Favourite:Show()
 		else
-			self.Favourite:SetAlpha(0)
+			self.Favourite:Hide()
 		end
 
 		if NDuiDB["Bags"]["BagsiLvl"] and isItemNeedsLevel(item) then
@@ -761,9 +764,9 @@ function module:OnLogin()
 
 	function MyButton:OnUpdateQuest(item)
 		if item.questID and not item.questActive then
-			self.Quest:SetAlpha(1)
+			self.Quest:Show()
 		else
-			self.Quest:SetAlpha(0)
+			self.Quest:Hide()
 		end
 
 		if item.questID or item.isQuestItem then
@@ -835,7 +838,7 @@ function module:OnLogin()
 			end
 		elseif name == "BankLegendary" then
 			label = LOOT_JOURNAL_LEGENDARIES
-		elseif strmatch(name, "Consumble$") then
+		elseif strmatch(name, "Consumable$") then
 			label = BAG_FILTER_CONSUMABLES
 		elseif name == "Junk" then
 			label = BAG_FILTER_JUNK
@@ -922,17 +925,23 @@ function module:OnLogin()
 		end
 	end
 
-	-- Fixes
+	-- Sort order
+	SetSortBagsRightToLeft(not NDuiDB["Bags"]["ReverseSort"])
+	SetInsertItemsLeftToRight(false)
+
+	-- Init
 	ToggleAllBags()
 	ToggleAllBags()
 	module.initComplete = true
 
+	B:RegisterEvent("TRADE_SHOW", module.OpenBags)
+	B:RegisterEvent("TRADE_CLOSED", module.CloseBags)
+	B:RegisterEvent("AUCTION_HOUSE_SHOW", module.OpenBags)
+	B:RegisterEvent("AUCTION_HOUSE_CLOSED", module.CloseBags)
+
+	-- Fixes
 	BankFrame.GetRight = function() return f.bank:GetRight() end
 	BankFrameItemButton_Update = B.Dummy
-
-	-- Sort order
-	SetSortBagsRightToLeft(not NDuiDB["Bags"]["ReverseSort"])
-	SetInsertItemsLeftToRight(false)
 
 	-- Shift key alert
 	local function onUpdate(self, elapsed)

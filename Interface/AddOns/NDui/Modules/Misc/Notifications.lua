@@ -422,7 +422,7 @@ function M:NVision_Create()
 	local barData = {
 		[1] = {
 			anchorF = "RIGHT", anchorT = "LEFT", offset = -3,
-			texture = "Interface\\ICONS\\INV_Misc_Gem_FlameSpessarite_02",
+			texture = 134110,
 			color = {1, .8, 0}, reverse = false, maxValue = 10,
 		},
 		[2] = {
@@ -495,9 +495,11 @@ function M:NVision_Check()
 		end
 
 		if RaidBossEmoteFrame.__isOff then
-			RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_EMOTE")
-			RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_WHISPER")
-			RaidBossEmoteFrame:RegisterEvent("CLEAR_BOSS_EMOTES")
+			if not NDuiDB["Misc"]["HideBossEmote"] then
+				RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_EMOTE")
+				RaidBossEmoteFrame:RegisterEvent("RAID_BOSS_WHISPER")
+				RaidBossEmoteFrame:RegisterEvent("CLEAR_BOSS_EMOTES")
+			end
 			RaidBossEmoteFrame.__isOff = nil
 		end
 	end

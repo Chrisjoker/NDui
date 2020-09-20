@@ -20,31 +20,21 @@ tinsert(C.defaultThemes, function()
 	navFrame:SetWidth(204)
 	navFrame:SetPoint("TOPLEFT", EquipmentFlyoutFrameButtons, "BOTTOMLEFT", 1, 0)
 
-	local function hook_SetVertexColor(self, r, g, b)
-		self:GetParent().bg:SetBackdropBorderColor(r, g, b)
-	end
-	local function hook_Hide(self)
-		self:GetParent().bg:SetBackdropBorderColor(0, 0, 0)
-	end
-
 	hooksecurefunc("EquipmentFlyout_CreateButton", function()
 		local button = EquipmentFlyoutFrame.buttons[#EquipmentFlyoutFrame.buttons]
 
-		button.IconBorder:SetAlpha(0)
 		button.icon:SetTexCoord(unpack(DB.TexCoord))
 		button:SetNormalTexture("")
 		button:SetPushedTexture("")
 		button:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
 		button.bg = B.CreateBDFrame(button)
+		B.HookIconBorderColor(button.IconBorder)
 
 		if not button.Eye then
 			button.Eye = button:CreateTexture()
 			button.Eye:SetAtlas("Nzoth-inventory-icon")
 			button.Eye:SetInside()
 		end
-
-		hooksecurefunc(button.IconBorder, "SetVertexColor", hook_SetVertexColor)
-		hooksecurefunc(button.IconBorder, "Hide", hook_Hide)
 	end)
 
 	local function UpdateCorruption(button, location)
