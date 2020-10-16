@@ -56,10 +56,13 @@ tinsert(C.defaultThemes, function()
 		frame.IconBorder:Hide()
 		frame.BlackBackgroundHoist.Background:Hide()
 		frame.SpecRing:SetAlpha(0)
-		frame.SpecIcon:SetPoint("TOPLEFT", 5, -5)
-		local bg = B.ReskinIcon(frame.SpecIcon)
+
+		local specIcon = frame.SpecIcon
+		specIcon:ClearAllPoints()
+		specIcon:SetPoint("TOPRIGHT", -90, -18)
+		local bg = B.ReskinIcon(specIcon)
 		hooksecurefunc("BonusRollFrame_StartBonusRoll", function()
-			bg:SetShown(frame.SpecIcon:IsShown())
+			bg:SetShown(specIcon:IsShown())
 		end)
 
 		B.ReskinIcon(frame.PromptFrame.Icon)
@@ -80,7 +83,7 @@ tinsert(C.defaultThemes, function()
 			if not frame.styled then
 				frame.Border:SetAlpha(0)
 				frame.Background:SetAlpha(0)
-				frame.bg = B.CreateBDFrame(frame, nil, true)
+				frame.bg = B.SetBD(frame)
 
 				frame.Timer.Bar:SetTexture(DB.bdTex)
 				frame.Timer.Bar:SetVertexColor(1, .8, 0)

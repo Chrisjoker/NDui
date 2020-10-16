@@ -1,15 +1,13 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
-tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
-
-    local r, g, b = DB.r, DB.g, DB.b
+local function LoadPrepatchHelpFrame()
+	local r, g, b = DB.r, DB.g, DB.b
 
 	B.StripTextures(HelpFrame)
 	B.SetBD(HelpFrame)
 	B.StripTextures(HelpFrame.Header)
-    B.ReskinClose(HelpFrameCloseButton)
+	B.ReskinClose(HelpFrameCloseButton)
 
 	B.StripTextures(HelpFrameMainInset)
 	B.StripTextures(HelpFrameLeftInset)
@@ -63,8 +61,7 @@ tinsert(C.defaultThemes, function()
 	for i = 1, 15 do
 		local bu = _G["HelpFrameKnowledgebaseScrollFrameButton"..i]
 		bu:DisableDrawLayer("ARTWORK")
-		B.CreateBD(bu, 0)
-		B.CreateGradient(bu)
+		B.CreateBDFrame(bu, 0, true)
 	end
 
 	local function colourTab(f)
@@ -122,4 +119,32 @@ tinsert(C.defaultThemes, function()
 	B.SetBD(TicketStatusFrameButton)
 	B.SetBD(ReportCheatingDialog)
 	ReportCheatingDialog.Border:Hide()
+end
+
+tinsert(C.defaultThemes, function()
+	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+
+	if not DB.isNewPatch then
+		LoadPrepatchHelpFrame()
+		return
+	end
+
+	B.StripTextures(HelpFrame)
+	B.SetBD(HelpFrame)
+	B.ReskinClose(HelpFrameCloseButton)
+	B.StripTextures(HelpBrowser.BrowserInset)
+
+	B.StripTextures(BrowserSettingsTooltip)
+	B.SetBD(BrowserSettingsTooltip)
+	B.Reskin(BrowserSettingsTooltip.CookiesButton)
+
+	B.StripTextures(TicketStatusFrameButton)
+	B.SetBD(TicketStatusFrameButton)
+
+	B.SetBD(ReportCheatingDialog)
+	ReportCheatingDialog.Border:Hide()
+	B.Reskin(ReportCheatingDialogReportButton)
+	B.Reskin(ReportCheatingDialogCancelButton)
+	B.StripTextures(ReportCheatingDialogCommentFrame)
+	B.CreateBDFrame(ReportCheatingDialogCommentFrame, .25)
 end)
