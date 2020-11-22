@@ -7,14 +7,15 @@ local B, C, L, DB = unpack(ns)
 
 local next, ipairs, select = next, ipairs, select
 local UnitGUID, IsShiftKeyDown, GetItemInfoFromHyperlink = UnitGUID, IsShiftKeyDown, GetItemInfoFromHyperlink
-local GetNumTrackingTypes, GetTrackingInfo, GetInstanceInfo = GetNumTrackingTypes, GetTrackingInfo, GetInstanceInfo
+local GetNumTrackingTypes, GetTrackingInfo, GetInstanceInfo, GetQuestID = GetNumTrackingTypes, GetTrackingInfo, GetInstanceInfo, GetQuestID
 local GetNumActiveQuests, GetActiveTitle, GetActiveQuestID, SelectActiveQuest = GetNumActiveQuests, GetActiveTitle, GetActiveQuestID, SelectActiveQuest
-local IsQuestCompletable, GetNumQuestItems, GetQuestItemLink = IsQuestCompletable, GetNumQuestItems, GetQuestItemLink
-local QuestGetAutoAccept, AcceptQuest, CloseQuest, CompleteQuest = QuestGetAutoAccept, AcceptQuest, CloseQuest, CompleteQuest
+local IsQuestCompletable, GetNumQuestItems, GetQuestItemLink, QuestIsFromAreaTrigger = IsQuestCompletable, GetNumQuestItems, GetQuestItemLink, QuestIsFromAreaTrigger
+local QuestGetAutoAccept, AcceptQuest, CloseQuest, CompleteQuest, AcknowledgeAutoAcceptQuest = QuestGetAutoAccept, AcceptQuest, CloseQuest, CompleteQuest, AcknowledgeAutoAcceptQuest
 local GetNumQuestChoices, GetQuestReward, GetItemInfo, GetQuestItemInfo = GetNumQuestChoices, GetQuestReward, GetItemInfo, GetQuestItemInfo
 local GetNumAvailableQuests, GetAvailableQuestInfo, SelectAvailableQuest = GetNumAvailableQuests, GetAvailableQuestInfo, SelectAvailableQuest
 local GetNumAutoQuestPopUps, GetAutoQuestPopUp, ShowQuestOffer, ShowQuestComplete = GetNumAutoQuestPopUps, GetAutoQuestPopUp, ShowQuestOffer, ShowQuestComplete
 local C_QuestLog_IsWorldQuest = C_QuestLog.IsWorldQuest
+local C_QuestLog_IsQuestTrivial = C_QuestLog.IsQuestTrivial
 local C_QuestLog_GetQuestTagInfo = C_QuestLog.GetQuestTagInfo
 local C_GossipInfo_GetOptions = C_GossipInfo.GetOptions
 local C_GossipInfo_SelectOption = C_GossipInfo.SelectOption
@@ -38,11 +39,13 @@ local function setupCheckButton()
 	mono:SetPoint("TOPRIGHT", -140, 0)
 	mono:SetSize(26, 26)
 	B.ReskinCheck(mono)
-	mono.text = B.CreateFS(mono, 14, L["Auto Quest"], false, "LEFT", 25, 0)
-	mono:SetChecked(NDuiDB["Misc"]["AutoQuest"])
+	mono.text = B.CreateFS(mono, 14, L["AutoQuest"], false, "LEFT", 25, 0)
+	mono:SetChecked(C.db["Misc"]["AutoQuest"])
 	mono:SetScript("OnClick", function(self)
-		NDuiDB["Misc"]["AutoQuest"] = self:GetChecked()
+		C.db["Misc"]["AutoQuest"] = self:GetChecked()
 	end)
+	mono.title = L["Tips"]
+	B.AddTooltip(mono, "ANCHOR_BOTTOMLEFT", L["AutoQuestTip"], "info")
 
 	created = true
 end
@@ -57,7 +60,7 @@ end)
 function QuickQuest:Register(event, func)
 	self:RegisterEvent(event)
 	self[event] = function(...)
-		if NDuiDB["Misc"]["AutoQuest"] and not IsShiftKeyDown() then
+		if C.db["Misc"]["AutoQuest"] and not IsShiftKeyDown() then
 			func(...)
 		end
 	end
@@ -168,6 +171,8 @@ local ignoreGossipNPC = {
 	[171787] = true, -- 文官阿得赖斯提斯
 	[171795] = true, -- 月莓女勋爵
 	[171821] = true, -- 德拉卡女男爵
+	[172558] = true, -- 艾拉·引路者（导师）
+	[172572] = true, -- 瑟蕾丝特·贝利文科（导师）
 }
 
 local rogueClassHallInsignia = {
@@ -246,7 +251,11 @@ QuickQuest:Register("GOSSIP_CONFIRM", function(index)
 end)
 
 QuickQuest:Register("QUEST_DETAIL", function()
-	if not QuestGetAutoAccept() then
+	if QuestIsFromAreaTrigger() then
+		AcceptQuest()
+	elseif QuestGetAutoAccept() then
+		AcknowledgeAutoAcceptQuest()
+	elseif not C_QuestLog_IsQuestTrivial(GetQuestID()) or IsTrackingHidden() then
 		AcceptQuest()
 	end
 end)
@@ -421,7 +430,7 @@ local function AttemptAutoComplete(event)
 		if not C_QuestLog_IsWorldQuest(questID) then
 			if popUpType == "OFFER" then
 				ShowQuestOffer(questID)
-			else
+			elseif popUpType == "COMPLETE" then
 				ShowQuestComplete(questID)
 			end
 		end

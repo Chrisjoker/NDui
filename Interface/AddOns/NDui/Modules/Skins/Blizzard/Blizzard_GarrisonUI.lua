@@ -660,7 +660,7 @@ C.themes["Blizzard_GarrisonUI"] = function()
 		if not frame.bg then
 			frame:GetRegions():Hide()
 			frame.bg = B.ReskinIcon(frame.Icon)
-			B.ReskinIconBorder(frame.IconBorder)
+			B.ReskinIconBorder(frame.IconBorder, true)
 		end
 	end)
 
@@ -934,6 +934,7 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	-- Covenant Mission UI
 	local CovenantMissionFrame = CovenantMissionFrame
 	ReskinMissionFrame(CovenantMissionFrame)
+	CovenantMissionFrame.RaisedBorder:SetAlpha(0)
 	CovenantMissionFrameMissions.RaisedFrameEdges:SetAlpha(0)
 
 	CombatLog:DisableDrawLayer("BACKGROUND")
@@ -949,10 +950,7 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	CovenantMissionFrame.FollowerTab.RaisedFrameEdges:SetAlpha(0)
 	CovenantMissionFrame.FollowerTab.HealFollowerFrame.ButtonFrame:SetAlpha(0)
 	CovenantMissionFrameFollowers.ElevatedFrame:SetAlpha(0)
-	if CovenantMissionFrameFollowers.HealAllButton then
-		B.Reskin(CovenantMissionFrameFollowers.HealAllButton) -- not in ptr
-	end
-	CovenantMissionFrame.MapTab:SetAlpha(0) -- not sure what does this for, need reviewed
+	B.Reskin(CovenantMissionFrameFollowers.HealAllButton)
 	B.ReskinIcon(CovenantMissionFrame.FollowerTab.HealFollowerFrame.CostFrame.CostIcon)
 
 	CovenantMissionFrame.MissionTab.MissionPage.Board:HookScript("OnShow", ReskinMissionBoards)
@@ -964,7 +962,7 @@ C.themes["Blizzard_GarrisonUI"] = function()
 		local buttons = MissionList.listScroll.buttons
 		for i = 1, #buttons do
 			local bu = select(3, buttons[i]:GetChildren())
-			if bu and bu:GetObjectType() == "Button" and not bu.styled then
+			if bu and bu:IsObjectType("Button") and not bu.styled then
 				B.Reskin(bu)
 				bu:SetSize(60, 45)
 				bu.styled = true
@@ -973,9 +971,9 @@ C.themes["Blizzard_GarrisonUI"] = function()
 	end
 
 	local function buttonOnShow(MissionPage)
-		for i = 18, 26 do
+		for i = 18, 27 do
 			local bu = select(i, MissionPage:GetChildren())
-			if bu and bu:GetObjectType() == "Button" and not bu.styled then
+			if bu and bu:IsObjectType("Button") and not bu.styled then
 				B.Reskin(bu)
 				bu:SetSize(50, 45)
 				bu.styled = true
@@ -997,6 +995,62 @@ C.themes["Blizzard_GarrisonUI"] = function()
 			f:UnregisterEvent(event)
 		end
 	end)
+
+	-- WarPlan
+	if IsAddOnLoaded("WarPlan") then
+		local function reskinWarPlanFont(font, r, g, b)
+			if not C.db["Skins"]["FontOutline"] then return end
+			if not font then return end
+			font:SetTextColor(r, g, b)
+		end
+
+		local function reskinWarPlanMissions(self)
+			local missions = self.TaskBoard.Missions
+			for i = 1, #missions do
+				local button = missions[i]
+				if not button.styled then
+					reskinWarPlanFont(button.XPReward, 1, 1, 1)
+					reskinWarPlanFont(button.Description, .8, .8, .8)
+					reskinWarPlanFont(button.CDTDisplay, 1, 1, 1)
+
+					local groups = button.Groups
+					if groups then
+						for j = 1, #groups do
+							local group = groups[j]
+							B.Reskin(group)
+							reskinWarPlanFont(group.Features, 1, .8, 0)
+						end
+					end
+
+					button.styled = true
+				end
+			end
+		end
+
+		C_Timer.After(.1, function()
+			local WarPlanFrame = _G.WarPlanFrame
+			if not WarPlanFrame then return end
+
+			B.StripTextures(WarPlanFrame)
+			B.SetBD(WarPlanFrame)
+			B.StripTextures(WarPlanFrame.ArtFrame)
+			B.ReskinClose(WarPlanFrame.ArtFrame.CloseButton)
+			reskinWarPlanFont(WarPlanFrame.ArtFrame.TitleText, 1, .8, 0)
+
+			reskinWarPlanMissions(WarPlanFrame)
+			WarPlanFrame:HookScript("OnShow", reskinWarPlanMissions)
+			B.Reskin(WarPlanFrame.TaskBoard.AllPurposeButton)
+
+			local entries = WarPlanFrame.HistoryFrame.Entries
+			for i = 1, #entries do
+				local entry = entries[i]
+				entry:DisableDrawLayer("BACKGROUND")
+				B.ReskinIcon(entry.Icon)
+				entry.Name:SetFontObject("Number12Font")
+				entry.Detail:SetFontObject("Number12Font")
+			end
+		end)
+	end
 end
 
 C.themes["Blizzard_OrderHallUI"] = function()

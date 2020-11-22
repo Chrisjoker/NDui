@@ -42,14 +42,14 @@ function TT:HideLines()
 				tiptext:SetText(nil)
 				tiptext:Hide()
 			elseif linetext == FACTION_HORDE then
-				if NDuiDB["Tooltip"]["FactionIcon"] then
+				if C.db["Tooltip"]["FactionIcon"] then
 					tiptext:SetText(nil)
 					tiptext:Hide()
 				else
 					tiptext:SetText("|cffff5040"..linetext.."|r")
 				end
 			elseif linetext == FACTION_ALLIANCE then
-				if NDuiDB["Tooltip"]["FactionIcon"] then
+				if C.db["Tooltip"]["FactionIcon"] then
 					tiptext:SetText(nil)
 					tiptext:Hide()
 				else
@@ -122,7 +122,7 @@ end
 
 function TT:OnTooltipSetUnit()
 	if self:IsForbidden() then return end
-	if NDuiDB["Tooltip"]["CombatHide"] and InCombatLockdown() then self:Hide() return end
+	if C.db["Tooltip"]["CombatHide"] and InCombatLockdown() then self:Hide() return end
 	TT.HideLines(self)
 
 	local unit = TT.GetUnit(self)
@@ -141,11 +141,11 @@ function TT:OnTooltipSetUnit()
 			local name, realm = UnitName(unit)
 			local pvpName = UnitPVPName(unit)
 			local relationship = UnitRealmRelationship(unit)
-			if not NDuiDB["Tooltip"]["HideTitle"] and pvpName then
+			if not C.db["Tooltip"]["HideTitle"] and pvpName then
 				name = pvpName
 			end
 			if realm and realm ~= "" then
-				if isShiftKeyDown or not NDuiDB["Tooltip"]["HideRealm"] then
+				if isShiftKeyDown or not C.db["Tooltip"]["HideRealm"] then
 					name = name.."-"..realm
 				elseif relationship == LE_REALM_RELATION_COALESCED then
 					name = name..FOREIGN_SERVER_LABEL
@@ -160,14 +160,14 @@ function TT:OnTooltipSetUnit()
 			end
 			GameTooltipTextLeft1:SetFormattedText("%s", name..(status or ""))
 
-			if NDuiDB["Tooltip"]["FactionIcon"] then
+			if C.db["Tooltip"]["FactionIcon"] then
 				local faction = UnitFactionGroup(unit)
 				if faction and faction ~= "Neutral" then
 					TT.InsertFactionFrame(self, faction)
 				end
 			end
 
-			if NDuiDB["Tooltip"]["LFDRole"] then
+			if C.db["Tooltip"]["LFDRole"] then
 				local role = UnitGroupRolesAssigned(unit)
 				if role ~= "NONE" then
 					TT.InsertRoleFrame(self, role)
@@ -185,11 +185,11 @@ function TT:OnTooltipSetUnit()
 				end
 
 				rankIndex = rankIndex + 1
-				if NDuiDB["Tooltip"]["HideRank"] then rank = "" end
+				if C.db["Tooltip"]["HideRank"] then rank = "" end
 				if guildRealm and isShiftKeyDown then
 					guildName = guildName.."-"..guildRealm
 				end
-				if NDuiDB["Tooltip"]["HideJunkGuild"] and not isShiftKeyDown then
+				if C.db["Tooltip"]["HideJunkGuild"] and not isShiftKeyDown then
 					if strlen(guildName) > 31 then guildName = "..." end
 				end
 				GameTooltipTextLeft2:SetText("<"..guildName.."> "..rank.."("..rankIndex..")")
@@ -300,7 +300,7 @@ function TT:GameTooltip_SetDefaultAnchor(parent)
 	if self:IsForbidden() then return end
 	if not parent then return end
 
-	if NDuiDB["Tooltip"]["Cursor"] then
+	if C.db["Tooltip"]["Cursor"] then
 		self:SetOwner(parent, "ANCHOR_CURSOR_RIGHT")
 	else
 		if not mover then
@@ -339,13 +339,19 @@ function TT:GameTooltip_ComparisonFix(anchorFrame, shoppingTooltip1, shoppingToo
 end
 
 -- Tooltip skin
+local fakeBg = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+fakeBg:SetBackdrop({ bgFile = DB.bdTex, edgeFile = DB.bdTex, edgeSize = 1 })
+local function __GetBackdrop() return fakeBg:GetBackdrop() end
+local function __GetBackdropColor() return 0, 0, 0, .7 end
+local function __GetBackdropBorderColor() return 0, 0, 0 end
+
 function TT:ReskinTooltip()
 	if not self then
 		if DB.isDeveloper then print("Unknown tooltip spotted.") end
 		return
 	end
 	if self:IsForbidden() then return end
-	self:SetScale(NDuiDB["Tooltip"]["Scale"])
+	self:SetScale(C.db["Tooltip"]["Scale"])
 
 	if not self.tipStyled then
 		if self.SetBackdrop then self:SetBackdrop(nil) end
@@ -359,16 +365,16 @@ function TT:ReskinTooltip()
 		end
 
 		if self.GetBackdrop then
-			self.GetBackdrop = self.bg.GetBackdrop
-			self.GetBackdropColor = self.bg.GetBackdropColor
-			self.GetBackdropBorderColor = self.bg.GetBackdropBorderColor
+			self.GetBackdrop = __GetBackdrop
+			self.GetBackdropColor = __GetBackdropColor
+			self.GetBackdropBorderColor = __GetBackdropBorderColor
 		end
 
 		self.tipStyled = true
 	end
 
 	self.bg:SetBackdropBorderColor(0, 0, 0)
-	if NDuiDB["Tooltip"]["ClassColor"] and self.GetItem then
+	if C.db["Tooltip"]["ClassColor"] and self.GetItem then
 		local _, item = self:GetItem()
 		if item then
 			local quality = select(3, GetItemInfo(item))
@@ -546,9 +552,12 @@ TT:RegisterTooltips("NDui", function()
 		if BSYC_EventAlertTooltip then
 			TT.ReskinTooltip(BSYC_EventAlertTooltip)
 		end
-		-- Lib minimap icon
+		-- Libs
 		if LibDBIconTooltip then
 			TT.ReskinTooltip(LibDBIconTooltip)
+		end
+		if AceConfigDialogTooltip then
+			TT.ReskinTooltip(AceConfigDialogTooltip)
 		end
 		-- TomTom
 		if TomTomTooltip then
@@ -560,6 +569,10 @@ TT:RegisterTooltips("NDui", function()
 		end
 		if LootBarToolTip then
 			TT.ReskinTooltip(LootBarToolTip)
+		end
+		-- Narcissus
+		if NarciGameTooltip then
+			TT.ReskinTooltip(NarciGameTooltip)
 		end
 	end)
 

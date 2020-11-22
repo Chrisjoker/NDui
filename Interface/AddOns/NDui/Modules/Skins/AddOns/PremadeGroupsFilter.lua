@@ -4,8 +4,8 @@ local S = B:GetModule("Skins")
 local TT = B:GetModule("Tooltip")
 
 function S:PGFSkin()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
-	if not NDuiDB["Skins"]["PGFSkin"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["PGFSkin"] then return end
 	if not IsAddOnLoaded("PremadeGroupsFilter") then return end
 
 	local tipStyled
@@ -24,7 +24,7 @@ function S:PGFSkin()
 	hooksecurefunc(PremadeGroupsFilterDialog, "SetPoint", function(self, _, parent)
 		if parent ~= LFGListFrame then
 			self:ClearAllPoints()
-			self:SetPoint("TOPLEFT", LFGListFrame, "TOPRIGHT", 5, C.mult)
+			self:SetPoint("TOPLEFT", LFGListFrame, "TOPRIGHT", 5, 0)
 		end
 	end)
 

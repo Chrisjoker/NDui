@@ -7,7 +7,7 @@ local updater = CreateFrame("Frame")
 local AuraList, FrameList, UnitIDTable, IntTable, IntCD, myTable, cooldownTable = {}, {}, {}, {}, {}, {}, {}
 local pairs, select, tinsert, tremove, wipe = pairs, select, table.insert, table.remove, table.wipe
 local InCombatLockdown, UnitBuff, UnitDebuff, GetPlayerInfoByGUID, UnitInRaid, UnitInParty = InCombatLockdown, UnitBuff, UnitDebuff, GetPlayerInfoByGUID, UnitInRaid, UnitInParty
-local GetTime, GetSpellInfo, GetSpellCooldown, GetSpellCharges, GetTotemInfo = GetTime, GetSpellInfo, GetSpellCooldown, GetSpellCharges, GetTotemInfo
+local GetTime, GetSpellInfo, GetSpellCooldown, GetSpellCharges, GetTotemInfo, IsPlayerSpell = GetTime, GetSpellInfo, GetSpellCooldown, GetSpellCharges, GetTotemInfo, IsPlayerSpell
 local GetItemCooldown, GetItemInfo, GetInventoryItemLink, GetInventoryItemCooldown = GetItemCooldown, GetItemInfo, GetInventoryItemLink, GetInventoryItemCooldown
 
 -- DataConvert
@@ -35,7 +35,7 @@ local function DataAnalyze(v)
 end
 
 local function InsertData(index, target)
-	if NDuiDB["AuraWatchList"]["Switcher"][index] then
+	if C.db["AuraWatchList"]["Switcher"][index] then
 		wipe(target)
 	end
 
@@ -52,15 +52,15 @@ local function ConvertTable()
 	for i = 1, 10 do
 		myTable[i] = {}
 		if i < 10 then
-			local value = NDuiDB["AuraWatchList"][i]
+			local value = C.db["AuraWatchList"][i]
 			if value and next(value) then
 				for spellID, v in pairs(value) do
 					myTable[i][spellID] = DataAnalyze(v)
 				end
 			end
 		else
-			if next(NDuiDB["InternalCD"]) then
-				for spellID, v in pairs(NDuiDB["InternalCD"]) do
+			if next(C.db["InternalCD"]) then
+				for spellID, v in pairs(C.db["InternalCD"]) do
 					myTable[i][spellID] = DataAnalyze(v)
 				end
 			end
@@ -123,9 +123,11 @@ local function BuildUnitIDTable()
 end
 
 local function BuildCooldownTable()
+	wipe(cooldownTable)
+
 	for KEY, VALUE in pairs(AuraList) do
 		for spellID, value in pairs(VALUE.List) do
-			if value.SpellID or value.ItemID or value.SlotID or value.TotemID then
+			if value.SpellID and IsPlayerSpell(value.SpellID) or value.ItemID or value.SlotID or value.TotemID then
 				if not cooldownTable[KEY] then cooldownTable[KEY] = {} end
 				cooldownTable[KEY][spellID] = true
 			end
@@ -165,6 +167,13 @@ local function tooltipOnEnter(self)
 	GameTooltip:Show()
 end
 
+function A:RemoveSpellFromAuraList()
+	if IsAltKeyDown() and IsControlKeyDown() and self.type == 4 and self.spellID then
+		C.db["AuraWatchList"]["IgnoreSpells"][self.spellID] = true
+		print(format(L["AddToIgnoreList"], DB.NDuiString, self.spellID))
+	end
+end
+
 local function enableTooltip(self)
 	self:EnableMouse(true)
 	self.HL = self:CreateTexture(nil, "HIGHLIGHT")
@@ -172,11 +181,12 @@ local function enableTooltip(self)
 	self.HL:SetAllPoints(self.Icon)
 	self:SetScript("OnEnter", tooltipOnEnter)
 	self:SetScript("OnLeave", B.HideTooltip)
+	self:SetScript("OnMouseDown", A.RemoveSpellFromAuraList)
 end
 
 -- Icon mode
 local function BuildICON(iconSize)
-	iconSize = iconSize * NDuiDB["AuraWatch"]["IconScale"]
+	iconSize = iconSize * C.db["AuraWatch"]["IconScale"]
 
 	local frame = CreateFrame("Frame", nil, PetBattleFrameHider)
 	frame:SetSize(iconSize, iconSize)
@@ -199,7 +209,7 @@ local function BuildICON(iconSize)
 
 	frame.glowFrame = B.CreateGlowFrame(frame, iconSize)
 
-	if not NDuiDB["AuraWatch"]["ClickThrough"] then enableTooltip(frame) end
+	if not C.db["AuraWatch"]["ClickThrough"] then enableTooltip(frame) end
 
 	frame:Hide()
 	return frame
@@ -227,7 +237,7 @@ local function BuildBAR(barWidth, iconSize)
 	frame.Spellname = B.CreateFS(frame.Statusbar, 14, "", false, "LEFT", 2, 8)
 	frame.Spellname:SetWidth(frame.Statusbar:GetWidth()*.6)
 	frame.Spellname:SetJustifyH("LEFT")
-	if not NDuiDB["AuraWatch"]["ClickThrough"] then enableTooltip(frame) end
+	if not C.db["AuraWatch"]["ClickThrough"] then enableTooltip(frame) end
 
 	frame:Hide()
 	return frame
@@ -284,6 +294,7 @@ local function InitSetup()
 	BuildAuraList()
 	BuildUnitIDTable()
 	BuildCooldownTable()
+	B:RegisterEvent("PLAYER_TALENT_UPDATE", BuildCooldownTable)
 	BuildAura()
 	SetupAnchor()
 end
@@ -386,7 +397,7 @@ function A:AuraWatch_UpdateCD()
 end
 
 -- UpdateAura
-function A:AuraWatch_SetupAura(index, UnitID, name, icon, count, duration, expires, id, filter, flash)
+function A:AuraWatch_SetupAura(index, UnitID, name, icon, count, duration, expires, id, filter, flash, spellID)
 	if not index then return end
 
 	local frames = FrameList[index]
@@ -416,11 +427,14 @@ function A:AuraWatch_SetupAura(index, UnitID, name, icon, count, duration, expir
 	frame.unitID = UnitID
 	frame.id = id
 	frame.filter = filter
+	frame.spellID = spellID
 
 	frames.Index = (frames.Index + 1 > maxFrames) and maxFrames or frames.Index + 1
 end
 
 function A:AuraWatch_UpdateAura(spellID, UnitID, index, bool)
+	if C.db["AuraWatchList"]["IgnoreSpells"][spellID] then return end -- ignore spells
+
 	for KEY, VALUE in pairs(AuraList) do
 		local value = VALUE.List[spellID]
 		if value and value.AuraID and value.UnitID == UnitID then
@@ -443,7 +457,7 @@ function A:AuraWatch_UpdateAura(spellID, UnitID, index, bool)
 				end
 			end
 			if value.Timeless then duration, expires = 0, 0 end
-			return KEY, value.UnitID, name, icon, count, duration, expires, index, filter, value.Flash
+			return KEY, value.UnitID, name, icon, count, duration, expires, index, filter, value.Flash, spellID
 		end
 	end
 	return false
@@ -594,7 +608,7 @@ function A:AuraWatch_UpdateInt(_, ...)
 		if value.OnSuccess then guid, name = sourceGUID, sourceName end
 
 		A:AuraWatch_SetupInt(value.IntID, value.ItemID, value.Duration, value.UnitID, guid, name)
-		if NDuiDB["AuraWatch"]["QuakeRing"] and spellID == 240447 then PlaySound(soundKitID, "Master") end -- 'Ding' on quake
+		if C.db["AuraWatch"]["QuakeRing"] and spellID == 240447 then PlaySound(soundKitID, "Master") end -- 'Ding' on quake
 
 		cache[timestamp] = spellID
 	end
@@ -622,7 +636,7 @@ end
 
 -- Event
 function A.AuraWatch_OnEvent(event, ...)
-	if not NDuiDB["AuraWatch"]["Enable"] then
+	if not C.db["AuraWatch"]["Enable"] then
 		B:UnregisterEvent("PLAYER_ENTERING_WORLD", A.AuraWatch_OnEvent)
 		B:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED", A.AuraWatch_OnEvent)
 		return

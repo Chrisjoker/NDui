@@ -119,7 +119,7 @@ end
 
 local function SetupBackdrop(icon)
 	local bg = B.SetBD(icon, .25)
-	if NDuiDB["Actionbar"]["Classcolor"] then
+	if C.db["Actionbar"]["Classcolor"] then
 		bg:SetBackdropColor(DB.r, DB.g, DB.b, .25)
 	else
 		bg:SetBackdropColor(.2, .2, .2, .25)
@@ -152,7 +152,7 @@ local replaces = {
 
 function Bar:UpdateHotKey()
 	local hotkey = _G[self:GetName().."HotKey"]
-	if hotkey and hotkey:IsShown() and not NDuiDB["Actionbar"]["Hotkeys"] then
+	if hotkey and hotkey:IsShown() and not C.db["Actionbar"]["Hotkeys"] then
 		hotkey:Hide()
 		return
 	end
@@ -230,7 +230,7 @@ function Bar:StyleActionButton(button, cfg)
 	local overlay = CreateFrame("Frame", nil, button)
 	overlay:SetAllPoints()
 	if count then
-		if NDuiDB["Actionbar"]["Count"] then
+		if C.db["Actionbar"]["Count"] then
 			count:SetParent(overlay)
 			SetupFontString(count, cfg.count)
 		else
@@ -238,16 +238,12 @@ function Bar:StyleActionButton(button, cfg)
 		end
 	end
 	if hotkey then
-		if NDuiDB["Actionbar"]["Hotkeys"] then
-			hotkey:SetParent(overlay)
-			Bar:HookHotKey(button)
-			SetupFontString(hotkey, cfg.hotkey)
-		else
-			hotkey:Hide()
-		end
+		hotkey:SetParent(overlay)
+		Bar:HookHotKey(button)
+		SetupFontString(hotkey, cfg.hotkey)
 	end
 	if name then
-		if NDuiDB["Actionbar"]["Macro"] then
+		if C.db["Actionbar"]["Macro"] then
 			name:SetParent(overlay)
 			SetupFontString(name, cfg.name)
 		else
@@ -301,15 +297,13 @@ function Bar:StyleExtraActionButton(cfg)
 	--hotkey, count
 	local overlay = CreateFrame("Frame", nil, button)
 	overlay:SetAllPoints()
-	if NDuiDB["Actionbar"]["Hotkeys"] then
-		hotkey:SetParent(overlay)
-		Bar:HookHotKey(button)
-		cfg.hotkey.font = {DB.Font[1], 13, DB.Font[3]}
-		SetupFontString(hotkey, cfg.hotkey)
-	else
-		hotkey:Hide()
-	end
-	if NDuiDB["Actionbar"]["Count"] then
+
+	hotkey:SetParent(overlay)
+	Bar:HookHotKey(button)
+	cfg.hotkey.font = {DB.Font[1], 13, DB.Font[3]}
+	SetupFontString(hotkey, cfg.hotkey)
+
+	if C.db["Actionbar"]["Count"] then
 		count:SetParent(overlay)
 		cfg.count.font = {DB.Font[1], 16, DB.Font[3]}
 		SetupFontString(count, cfg.count)
@@ -418,8 +412,8 @@ function Bar:ReskinBars()
 		},
 		cooldown = {
 			points = {
-				{"TOPLEFT", C.mult, -C.mult},
-				{"BOTTOMRIGHT", -C.mult, C.mult},
+				{"TOPLEFT", 0, 0},
+				{"BOTTOMRIGHT", 0, 0},
 			},
 		},
 		name = {
@@ -449,8 +443,6 @@ function Bar:ReskinBars()
 
 	-- Update hotkeys
 	hooksecurefunc("PetActionButton_SetHotkeys", Bar.UpdateHotKey)
-	if NDuiDB["Actionbar"]["Hotkeys"] then
-		Bar:UpdateStanceHotKey()
-		B:RegisterEvent("UPDATE_BINDINGS", Bar.UpdateStanceHotKey)
-	end
+	Bar:UpdateStanceHotKey()
+	B:RegisterEvent("UPDATE_BINDINGS", Bar.UpdateStanceHotKey)
 end

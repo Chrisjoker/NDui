@@ -38,6 +38,14 @@ local function reskinSellPanel(frame)
 	end
 end
 
+local function MoveMoneyDisplay(frame, relF, parent, relT, _, _, reset)
+	if reset then return end
+	if not relF then
+		relF, parent, relT = frame:GetPoint()
+	end
+	frame:SetPoint(relF, parent, relT, 18, 0, true)
+end
+
 local function reskinListIcon(frame)
 	if not frame.tableBuilder then return end
 
@@ -53,6 +61,13 @@ local function reskinListIcon(frame)
 						cell.styled = true
 					end
 					cell.Icon.bg:SetShown(cell.Icon:IsShown())
+				end
+
+				local moneyDisplay = cell.MoneyDisplay
+				if moneyDisplay and not moneyDisplay.hooked then
+					MoveMoneyDisplay(cell.MoneyDisplay)
+					hooksecurefunc(cell.MoneyDisplay, "SetPoint", MoveMoneyDisplay)
+					moneyDisplay.hooked = true
 				end
 			end
 		end
@@ -232,6 +247,7 @@ C.themes["Blizzard_AuctionHouseUI"] = function()
 	B.SetBD(multisellFrame)
 	local progressBar = multisellFrame.ProgressBar
 	B.StripTextures(progressBar)
+	B.ReskinIcon(progressBar.Icon)
 	progressBar:SetStatusBarTexture(DB.normTex)
 	B.CreateBDFrame(progressBar, .25)
 	local close = multisellFrame.CancelButton

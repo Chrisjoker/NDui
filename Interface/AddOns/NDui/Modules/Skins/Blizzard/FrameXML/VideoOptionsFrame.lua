@@ -2,7 +2,7 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
 tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
 
 	B.StripTextures(VideoOptionsFrameCategoryFrame)
 	B.StripTextures(VideoOptionsFramePanelContainer)
@@ -80,7 +80,7 @@ tinsert(C.defaultThemes, function()
 			"Advanced_BufferingDropDown",
 			"Advanced_FilteringDropDown",
 			"Advanced_RTShadowQualityDropDown",
-			"Advanced_SSAOTypeDropDown", -- not in ptr
+			"Advanced_SSAOTypeDropDown",
 			"Advanced_MultisampleAntiAliasingDropDown",
 			"Advanced_MultisampleAlphaTest",
 			"Advanced_PostProcessAntiAliasingDropDown",

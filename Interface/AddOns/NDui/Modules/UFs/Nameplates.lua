@@ -10,7 +10,7 @@ local GetInstanceInfo, UnitClassification, UnitExists, InCombatLockdown = GetIns
 local C_Scenario_GetInfo, C_Scenario_GetStepInfo, C_MythicPlus_GetCurrentAffixes = C_Scenario.GetInfo, C_Scenario.GetStepInfo, C_MythicPlus.GetCurrentAffixes
 local UnitGUID, GetPlayerInfoByGUID, Ambiguate = UnitGUID, GetPlayerInfoByGUID, Ambiguate
 local SetCVar, UIFrameFadeIn, UIFrameFadeOut = SetCVar, UIFrameFadeIn, UIFrameFadeOut
-local IsInRaid, IsInGroup, UnitName = IsInRaid, IsInGroup, UnitName
+local IsInRaid, IsInGroup, UnitName, UnitHealth, UnitHealthMax = IsInRaid, IsInGroup, UnitName, UnitHealth, UnitHealthMax
 local GetNumGroupMembers, GetNumSubgroupMembers, UnitGroupRolesAssigned = GetNumGroupMembers, GetNumSubgroupMembers, UnitGroupRolesAssigned
 local C_NamePlate_GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 local GetSpellCooldown, GetTime = GetSpellCooldown, GetTime
@@ -19,7 +19,7 @@ local INTERRUPTED = INTERRUPTED
 
 -- Init
 function UF:PlateInsideView()
-	if NDuiDB["Nameplate"]["InsideView"] then
+	if C.db["Nameplate"]["InsideView"] then
 		SetCVar("nameplateOtherTopInset", .05)
 		SetCVar("nameplateOtherBottomInset", .08)
 	else
@@ -29,34 +29,29 @@ function UF:PlateInsideView()
 end
 
 function UF:UpdatePlateScale()
-	SetCVar("namePlateMinScale", NDuiDB["Nameplate"]["MinScale"])
-	SetCVar("namePlateMaxScale", NDuiDB["Nameplate"]["MinScale"])
+	SetCVar("namePlateMinScale", C.db["Nameplate"]["MinScale"])
+	SetCVar("namePlateMaxScale", C.db["Nameplate"]["MinScale"])
 end
 
 function UF:UpdatePlateAlpha()
-	SetCVar("nameplateMinAlpha", NDuiDB["Nameplate"]["MinAlpha"])
-	SetCVar("nameplateMaxAlpha", NDuiDB["Nameplate"]["MinAlpha"])
-end
-
-function UF:UpdatePlateRange()
-	SetCVar("nameplateMaxDistance", NDuiDB["Nameplate"]["Distance"])
+	SetCVar("nameplateMinAlpha", C.db["Nameplate"]["MinAlpha"])
+	SetCVar("nameplateMaxAlpha", C.db["Nameplate"]["MinAlpha"])
 end
 
 function UF:UpdatePlateSpacing()
-	SetCVar("nameplateOverlapV", NDuiDB["Nameplate"]["VerticalSpacing"])
+	SetCVar("nameplateOverlapV", C.db["Nameplate"]["VerticalSpacing"])
 end
 
 function UF:UpdateClickableSize()
 	if InCombatLockdown() then return end
-	C_NamePlate.SetNamePlateEnemySize(NDuiDB["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], NDuiDB["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
-	C_NamePlate.SetNamePlateFriendlySize(NDuiDB["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], NDuiDB["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
+	C_NamePlate.SetNamePlateEnemySize(C.db["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], C.db["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
+	C_NamePlate.SetNamePlateFriendlySize(C.db["Nameplate"]["PlateWidth"]*NDuiADB["UIScale"], C.db["Nameplate"]["PlateHeight"]*NDuiADB["UIScale"]+40)
 end
 
 function UF:SetupCVars()
 	UF:PlateInsideView()
 	SetCVar("nameplateOverlapH", .8)
 	UF:UpdatePlateSpacing()
-	UF:UpdatePlateRange()
 	UF:UpdatePlateAlpha()
 	SetCVar("nameplateSelectedAlpha", 1)
 	SetCVar("showQuestTrackingTooltips", 1)
@@ -64,6 +59,7 @@ function UF:SetupCVars()
 	UF:UpdatePlateScale()
 	SetCVar("nameplateSelectedScale", 1)
 	SetCVar("nameplateLargerScale", 1)
+	SetCVar("nameplateGlobalScale", 1)
 
 	SetCVar("nameplateShowSelf", 0)
 	SetCVar("nameplateResourceOnTarget", 0)
@@ -94,16 +90,16 @@ end
 local customUnits = {}
 function UF:CreateUnitTable()
 	wipe(customUnits)
-	if not NDuiDB["Nameplate"]["CustomUnitColor"] then return end
+	if not C.db["Nameplate"]["CustomUnitColor"] then return end
 	B.CopyTable(C.CustomUnits, customUnits)
-	B.SplitList(customUnits, NDuiDB["Nameplate"]["UnitList"])
+	B.SplitList(customUnits, C.db["Nameplate"]["UnitList"])
 end
 
 local showPowerList = {}
 function UF:CreatePowerUnitTable()
 	wipe(showPowerList)
 	B.CopyTable(C.ShowPowerList, showPowerList)
-	B.SplitList(showPowerList, NDuiDB["Nameplate"]["ShowPowerList"])
+	B.SplitList(showPowerList, C.db["Nameplate"]["ShowPowerList"])
 end
 
 function UF:UpdateUnitPower()
@@ -170,12 +166,14 @@ function UF:UpdateColor(_, unit)
 	local isPlayer = self.isPlayer
 	local isFriendly = self.isFriendly
 	local status = self.feedbackUnit and UnitThreatSituation(self.feedbackUnit, unit) or false -- just in case
-	local customColor = NDuiDB["Nameplate"]["CustomColor"]
-	local secureColor = NDuiDB["Nameplate"]["SecureColor"]
-	local transColor = NDuiDB["Nameplate"]["TransColor"]
-	local insecureColor = NDuiDB["Nameplate"]["InsecureColor"]
-	local revertThreat = NDuiDB["Nameplate"]["DPSRevertThreat"]
-	local offTankColor = NDuiDB["Nameplate"]["OffTankColor"]
+	local customColor = C.db["Nameplate"]["CustomColor"]
+	local secureColor = C.db["Nameplate"]["SecureColor"]
+	local transColor = C.db["Nameplate"]["TransColor"]
+	local insecureColor = C.db["Nameplate"]["InsecureColor"]
+	local revertThreat = C.db["Nameplate"]["DPSRevertThreat"]
+	local offTankColor = C.db["Nameplate"]["OffTankColor"]
+	local executeRatio = C.db["Nameplate"]["ExecuteRatio"]
+	local healthPerc = UnitHealth(unit) / (UnitHealthMax(unit) + .0001) * 100
 	local r, g, b
 
 	if not UnitIsConnected(unit) then
@@ -184,18 +182,18 @@ function UF:UpdateColor(_, unit)
 		if isCustomUnit then
 			r, g, b = customColor.r, customColor.g, customColor.b
 		elseif isPlayer and isFriendly then
-			if NDuiDB["Nameplate"]["FriendlyCC"] then
+			if C.db["Nameplate"]["FriendlyCC"] then
 				r, g, b = B.UnitColor(unit)
 			else
 				r, g, b = .3, .3, 1
 			end
-		elseif isPlayer and (not isFriendly) and NDuiDB["Nameplate"]["HostileCC"] then
+		elseif isPlayer and (not isFriendly) and C.db["Nameplate"]["HostileCC"] then
 			r, g, b = B.UnitColor(unit)
 		elseif UnitIsTapDenied(unit) and not UnitPlayerControlled(unit) then
 			r, g, b = .6, .6, .6
 		else
 			r, g, b = UnitSelectionColor(unit, true)
-			if status and (NDuiDB["Nameplate"]["TankMode"] or DB.Role == "Tank") then
+			if status and (C.db["Nameplate"]["TankMode"] or DB.Role == "Tank") then
 				if status == 3 then
 					if DB.Role ~= "Tank" and revertThreat then
 						r, g, b = insecureColor.r, insecureColor.g, insecureColor.b
@@ -223,7 +221,7 @@ function UF:UpdateColor(_, unit)
 		element:SetStatusBarColor(r, g, b)
 	end
 
-	if isCustomUnit or (not NDuiDB["Nameplate"]["TankMode"] and DB.Role ~= "Tank") then
+	if isCustomUnit or (not C.db["Nameplate"]["TankMode"] and DB.Role ~= "Tank") then
 		if status and status == 3 then
 			self.ThreatIndicator:SetBackdropBorderColor(1, 0, 0)
 			self.ThreatIndicator:Show()
@@ -235,6 +233,12 @@ function UF:UpdateColor(_, unit)
 		end
 	else
 		self.ThreatIndicator:Hide()
+	end
+
+	if executeRatio > 0 and healthPerc <= executeRatio then
+		self.nameText:SetTextColor(1, 0, 0)
+	else
+		self.nameText:SetTextColor(1, 1, 1)
 	end
 end
 
@@ -257,7 +261,7 @@ end
 -- Target indicator
 function UF:UpdateTargetChange()
 	local element = self.TargetIndicator
-	if NDuiDB["Nameplate"]["TargetIndicator"] == 1 then return end
+	if C.db["Nameplate"]["TargetIndicator"] == 1 then return end
 
 	if UnitIsUnit(self.unit, "target") and not UnitIsUnit(self.unit, "player") then
 		element:Show()
@@ -267,7 +271,7 @@ function UF:UpdateTargetChange()
 end
 
 function UF:UpdateTargetIndicator()
-	local style = NDuiDB["Nameplate"]["TargetIndicator"]
+	local style = C.db["Nameplate"]["TargetIndicator"]
 	local element = self.TargetIndicator
 	local isNameOnly = self.isNameOnly
 	if style == 1 then
@@ -359,14 +363,14 @@ local function CheckInstanceStatus()
 end
 
 function UF:QuestIconCheck()
-	if not NDuiDB["Nameplate"]["QuestIndicator"] then return end
+	if not C.db["Nameplate"]["QuestIndicator"] then return end
 
 	CheckInstanceStatus()
 	B:RegisterEvent("PLAYER_ENTERING_WORLD", CheckInstanceStatus)
 end
 
 function UF:UpdateQuestUnit(_, unit)
-	if not NDuiDB["Nameplate"]["QuestIndicator"] then return end
+	if not C.db["Nameplate"]["QuestIndicator"] then return end
 	if isInInstance then
 		self.questIcon:Hide()
 		self.questCount:SetText("")
@@ -433,7 +437,7 @@ function UF:UpdateQuestUnit(_, unit)
 end
 
 function UF:AddQuestIcon(self)
-	if not NDuiDB["Nameplate"]["QuestIndicator"] then return end
+	if not C.db["Nameplate"]["QuestIndicator"] then return end
 
 	local qicon = self:CreateTexture(nil, "OVERLAY", nil, 2)
 	qicon:SetPoint("LEFT", self, "RIGHT", -1, 0)
@@ -451,7 +455,7 @@ end
 
 -- Dungeon progress, AngryKeystones required
 function UF:AddDungeonProgress(self)
-	if not NDuiDB["Nameplate"]["AKSProgress"] then return end
+	if not C.db["Nameplate"]["AKSProgress"] then return end
 
 	self.progressText = B.CreateFS(self, 16, "", false, "LEFT", 0, 0)
 	self.progressText:SetPoint("LEFT", self, "RIGHT", 5, 0)
@@ -567,7 +571,7 @@ local function checkAffixes(event)
 end
 
 function UF:CheckExplosives()
-	if not NDuiDB["Nameplate"]["ExplosivesScale"] then return end
+	if not C.db["Nameplate"]["ExplosivesScale"] then return end
 
 	B:RegisterEvent("PLAYER_ENTERING_WORLD", checkAffixes)
 end
@@ -624,7 +628,8 @@ end
 -- WidgetContainer
 function UF:AddWidgetContainer(self)
 	local widgetContainer = CreateFrame("Frame", nil, self, "UIWidgetContainerTemplate")
-	widgetContainer:SetPoint("BOTTOM", self, "TOP")
+	widgetContainer:SetPoint("TOP", self.Castbar, "BOTTOM", 0, -5)
+	widgetContainer:SetScale(1/NDuiADB["UIScale"])
 	widgetContainer:Hide()
 
 	self.WidgetContainer = widgetContainer
@@ -655,7 +660,7 @@ end
 local platesList = {}
 function UF:CreatePlates()
 	self.mystyle = "nameplate"
-	self:SetSize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"])
+	self:SetSize(C.db["Nameplate"]["PlateWidth"], C.db["Nameplate"]["PlateHeight"])
 	self:SetPoint("CENTER")
 	self:SetScale(NDuiADB["UIScale"])
 
@@ -668,7 +673,7 @@ function UF:CreatePlates()
 	self.Health = health
 	self.Health.UpdateColor = UF.UpdateColor
 
-	local title = B.CreateFS(self, NDuiDB["Nameplate"]["NameTextSize"]-1)
+	local title = B.CreateFS(self, C.db["Nameplate"]["NameTextSize"]-1)
 	title:ClearAllPoints()
 	title:SetPoint("TOP", self, "BOTTOM", 0, -10)
 	title:Hide()
@@ -720,7 +725,7 @@ function UF:UpdateTargetClassPower()
 	local playerPlate = _G.oUF_PlayerPlate
 	if not bar or not playerPlate then return end
 
-	if NDuiDB["Nameplate"]["NameplateClassPower"] then
+	if C.db["Nameplate"]["NameplateClassPower"] then
 		isTargetClassPower = true
 		UF:UpdateClassPowerAnchor()
 	else
@@ -734,14 +739,14 @@ end
 
 function UF:UpdateNameplateAuras()
 	local element = self.Auras
-	if NDuiDB["Nameplate"]["ShowPlayerPlate"] and NDuiDB["Nameplate"]["NameplateClassPower"] then
+	if C.db["Nameplate"]["ShowPlayerPlate"] and C.db["Nameplate"]["NameplateClassPower"] then
 		element:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 10 + _G.oUF_ClassPowerBar:GetHeight())
 	else
 		element:SetPoint("BOTTOMLEFT", self.nameText, "TOPLEFT", 0, 5)
 	end
-	element.numTotal = NDuiDB["Nameplate"]["maxAuras"]
-	element.size = NDuiDB["Nameplate"]["AuraSize"]
-	element.showDebuffType = NDuiDB["Nameplate"]["ColorBorder"]
+	element.numTotal = C.db["Nameplate"]["maxAuras"]
+	element.size = C.db["Nameplate"]["AuraSize"]
+	element.showDebuffType = C.db["Nameplate"]["ColorBorder"]
 	element:SetWidth(self:GetWidth())
 	element:SetHeight((element.size + element.spacing) * 2)
 	element:ForceUpdate()
@@ -749,12 +754,12 @@ end
 
 function UF:RefreshNameplats()
 	for nameplate in pairs(platesList) do
-		nameplate:SetSize(NDuiDB["Nameplate"]["PlateWidth"], NDuiDB["Nameplate"]["PlateHeight"])
-		nameplate.nameText:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
-		nameplate.npcTitle:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"]-1, DB.Font[3])
-		nameplate.Castbar.Time:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
-		nameplate.Castbar.Text:SetFont(DB.Font[1], NDuiDB["Nameplate"]["NameTextSize"], DB.Font[3])
-		nameplate.healthValue:SetFont(DB.Font[1], NDuiDB["Nameplate"]["HealthTextSize"], DB.Font[3])
+		nameplate:SetSize(C.db["Nameplate"]["PlateWidth"], C.db["Nameplate"]["PlateHeight"])
+		nameplate.nameText:SetFont(DB.Font[1], C.db["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.npcTitle:SetFont(DB.Font[1], C.db["Nameplate"]["NameTextSize"]-1, DB.Font[3])
+		nameplate.Castbar.Time:SetFont(DB.Font[1], C.db["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.Castbar.Text:SetFont(DB.Font[1], C.db["Nameplate"]["NameTextSize"], DB.Font[3])
+		nameplate.healthValue:SetFont(DB.Font[1], C.db["Nameplate"]["HealthTextSize"], DB.Font[3])
 		nameplate.healthValue:UpdateTag()
 		UF.UpdateNameplateAuras(nameplate)
 		UF.UpdateTargetIndicator(nameplate)
@@ -764,7 +769,7 @@ function UF:RefreshNameplats()
 end
 
 function UF:RefreshAllPlates()
-	if NDuiDB["Nameplate"]["ShowPlayerPlate"] then
+	if C.db["Nameplate"]["ShowPlayerPlate"] then
 		UF:ResizePlayerPlate()
 	end
 	UF:RefreshNameplats()
@@ -830,7 +835,7 @@ end
 function UF:RefreshPlateType(unit)
 	self.reaction = UnitReaction(unit, "player")
 	self.isFriendly = self.reaction and self.reaction >= 5
-	self.isNameOnly = NDuiDB["Nameplate"]["NameOnlyMode"] and self.isFriendly or self.widgetsOnly or false
+	self.isNameOnly = C.db["Nameplate"]["NameOnlyMode"] and self.isFriendly or self.widgetsOnly or false
 
 	if self.previousType == nil or self.previousType ~= self.isNameOnly then
 		UF.UpdatePlateByType(self)
@@ -888,7 +893,7 @@ end
 local auras = B:GetModule("Auras")
 
 function UF:PlateVisibility(event)
-	local alpha = NDuiDB["Nameplate"]["PPFadeoutAlpha"]
+	local alpha = C.db["Nameplate"]["PPFadeoutAlpha"]
 	if (event == "PLAYER_REGEN_DISABLED" or InCombatLockdown()) and UnitIsUnit("player", self.unit) then
 		UIFrameFadeIn(self.Health, .3, self.Health:GetAlpha(), 1)
 		UIFrameFadeIn(self.Health.bg, .3, self.Health.bg:GetAlpha(), 1)
@@ -905,10 +910,10 @@ end
 function UF:ResizePlayerPlate()
 	local plate = _G.oUF_PlayerPlate
 	if plate then
-		local barWidth = NDuiDB["Nameplate"]["PPWidth"]
-		local barHeight = NDuiDB["Nameplate"]["PPBarHeight"]
-		local healthHeight = NDuiDB["Nameplate"]["PPHealthHeight"]
-		local powerHeight = NDuiDB["Nameplate"]["PPPowerHeight"]
+		local barWidth = C.db["Nameplate"]["PPWidth"]
+		local barHeight = C.db["Nameplate"]["PPBarHeight"]
+		local healthHeight = C.db["Nameplate"]["PPHealthHeight"]
+		local powerHeight = C.db["Nameplate"]["PPPowerHeight"]
 
 		plate:SetSize(barWidth, healthHeight + powerHeight + C.mult)
 		plate.mover:SetSize(barWidth, healthHeight + powerHeight + C.mult)
@@ -917,7 +922,7 @@ function UF:ResizePlayerPlate()
 
 		local bars = plate.ClassPower or plate.Runes
 		if bars then
-			local classpowerWidth = NDuiDB["Nameplate"]["NameplateClassPower"] and NDuiDB["Nameplate"]["PlateWidth"] or barWidth
+			local classpowerWidth = C.db["Nameplate"]["NameplateClassPower"] and C.db["Nameplate"]["PlateWidth"] or barWidth
 			_G.oUF_ClassPowerBar:SetSize(classpowerWidth, barHeight)
 			local max = bars.__max
 			for i = 1, max do
@@ -935,11 +940,11 @@ function UF:ResizePlayerPlate()
 			end
 		end
 		if plate.dices then
-			local offset = NDuiDB["Nameplate"]["NameplateClassPower"] and C.margin or (C.margin*2 + barHeight)
+			local offset = C.db["Nameplate"]["NameplateClassPower"] and C.margin or (C.margin*2 + barHeight)
 			local size = (barWidth - 10)/6
 			for i = 1, 6 do
 				local dice = plate.dices[i]
-				dice:SetSize(size, size)
+				dice:SetSize(size, size/2)
 				if i == 1 then
 					dice:SetPoint("BOTTOMLEFT", plate.Health, "TOPLEFT", 0, offset)
 				end
@@ -951,14 +956,14 @@ end
 function UF:CreatePlayerPlate()
 	self.mystyle = "PlayerPlate"
 	self:EnableMouse(false)
-	local healthHeight, powerHeight = NDuiDB["Nameplate"]["PPHealthHeight"], NDuiDB["Nameplate"]["PPPowerHeight"]
-	self:SetSize(NDuiDB["Nameplate"]["PPWidth"], healthHeight + powerHeight + C.mult)
+	local healthHeight, powerHeight = C.db["Nameplate"]["PPHealthHeight"], C.db["Nameplate"]["PPPowerHeight"]
+	self:SetSize(C.db["Nameplate"]["PPWidth"], healthHeight + powerHeight + C.mult)
 
 	UF:CreateHealthBar(self)
 	UF:CreatePowerBar(self)
 	UF:CreateClassPower(self)
 	UF:StaggerBar(self)
-	if NDuiDB["Auras"]["ClassAuras"] then auras:CreateLumos(self) end
+	if C.db["Auras"]["ClassAuras"] then auras:CreateLumos(self) end
 
 	local textFrame = CreateFrame("Frame", nil, self.Power)
 	textFrame:SetAllPoints()
@@ -976,14 +981,14 @@ function UF:TogglePlatePower()
 	local plate = _G.oUF_PlayerPlate
 	if not plate then return end
 
-	plate.powerText:SetShown(NDuiDB["Nameplate"]["PPPowerText"])
+	plate.powerText:SetShown(C.db["Nameplate"]["PPPowerText"])
 end
 
 function UF:TogglePlateVisibility()
 	local plate = _G.oUF_PlayerPlate
 	if not plate then return end
 
-	if NDuiDB["Nameplate"]["PPFadeout"] then
+	if C.db["Nameplate"]["PPFadeout"] then
 		plate:RegisterEvent("UNIT_EXITED_VEHICLE", UF.PlateVisibility)
 		plate:RegisterEvent("UNIT_ENTERED_VEHICLE", UF.PlateVisibility)
 		plate:RegisterEvent("PLAYER_REGEN_ENABLED", UF.PlateVisibility, true)
@@ -1039,5 +1044,5 @@ function UF:ToggleGCDTicker()
 	local ticker = plate and plate.GCDTicker
 	if not ticker then return end
 
-	ticker:SetShown(NDuiDB["Nameplate"]["PPGCDTicker"])
+	ticker:SetShown(C.db["Nameplate"]["PPGCDTicker"])
 end

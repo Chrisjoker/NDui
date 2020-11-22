@@ -62,24 +62,6 @@ local function reskinTalentsList(self)
 	end
 end
 
-local function hideRenownLevelBorder(frame)
-	if not frame.styled then
-		frame.Divider:SetAlpha(0)
-		frame.BackgroundTile:SetAlpha(0)
-		B.CreateBDFrame(frame.Background, .25)
-
-		frame.styled = true
-	end
-
-	for button in frame.milestonesPool:EnumerateActive() do
-		if not button.styled then
-			button.LevelBorder:SetAlpha(0)
-
-			button.styled = true
-		end
-	end
-end
-
 local function replaceCurrencies(displayGroup)
 	for frame in displayGroup.currencyFramePool:EnumerateActive() do
 		if not frame.styled then
@@ -94,10 +76,6 @@ end
 C.themes["Blizzard_CovenantSanctum"] = function()
 	local CovenantSanctumFrame = CovenantSanctumFrame
 
-	B.ReskinTab(CovenantSanctumFrameTab1)
-	B.ReskinTab(CovenantSanctumFrameTab2)
-	CovenantSanctumFrameTab1:SetPoint("TOPLEFT", CovenantSanctumFrame, "BOTTOMLEFT", 23, 1)
-
 	CovenantSanctumFrame:HookScript("OnShow", function(self)
 		if not self.bg then
 			self.bg = B.SetBD(self)
@@ -105,28 +83,39 @@ C.themes["Blizzard_CovenantSanctum"] = function()
 			self.LevelFrame.Background:SetAlpha(0)
 			B.ReskinClose(self.CloseButton)
 			self.CloseButton.Border:SetAlpha(0)
-
-			local upgradesTab = self.UpgradesTab
-			upgradesTab.Background:SetAlpha(0)
-			B.CreateBDFrame(upgradesTab.Background, .25)
-			B.Reskin(upgradesTab.DepositButton)
-			for _, frame in ipairs(upgradesTab.Upgrades) do
-				if frame.TierBorder then
-					frame.TierBorder:SetAlpha(0)
-				end
-			end
-			upgradesTab.CurrencyBackground:SetAlpha(0)
-			replaceCurrencies(upgradesTab.CurrencyDisplayGroup)
-
-			local talentsList = upgradesTab.TalentsList
-			talentsList.Divider:SetAlpha(0)
-			B.CreateBDFrame(talentsList, .25)
-			talentsList.BackgroundTile:SetAlpha(0)
-			talentsList.IntroBox.Background:Hide()
-			B.Reskin(talentsList.UpgradeButton)
-			hooksecurefunc(talentsList, "Refresh", reskinTalentsList)
-
-			hooksecurefunc(self.RenownTab, "Refresh", hideRenownLevelBorder)
 		end
+	end)
+
+	local upgradesTab = CovenantSanctumFrame.UpgradesTab
+	upgradesTab.Background:SetAlpha(0)
+	B.CreateBDFrame(upgradesTab.Background, .25)
+	B.Reskin(upgradesTab.DepositButton)
+	for _, frame in ipairs(upgradesTab.Upgrades) do
+		if frame.TierBorder then
+			frame.TierBorder:SetAlpha(0)
+		end
+	end
+	upgradesTab.CurrencyBackground:SetAlpha(0)
+	replaceCurrencies(upgradesTab.CurrencyDisplayGroup)
+
+	local talentsList = upgradesTab.TalentsList
+	talentsList.Divider:SetAlpha(0)
+	B.CreateBDFrame(talentsList, .25)
+	talentsList.BackgroundTile:SetAlpha(0)
+	talentsList.IntroBox.Background:Hide()
+	B.Reskin(talentsList.UpgradeButton)
+	hooksecurefunc(talentsList, "Refresh", reskinTalentsList)
+end
+
+-- Covenant renown
+C.themes["Blizzard_CovenantRenown"] = function()
+	local CovenantRenownFrame = CovenantRenownFrame
+
+	B.SetBD(CovenantRenownFrame)
+	B.ReskinClose(CovenantRenownFrame.CloseButton)
+
+	hooksecurefunc(CovenantRenownFrame, "SetUpCovenantData", function(self)
+		B.StripTextures(self)
+		self.CloseButton.Border:Hide()
 	end)
 end

@@ -4,7 +4,7 @@
 # NDui Intro
 - This is not just an UI that changes your ingame appearence.
 - It contains build-in auras watcher and toolbar for all specs and talents.
-- Locales include 简体中文, 繁體中文 and enUS.
+- Locales include 简体中文, 繁體中文, ruRU and enUS.
 - Published Pages:
   - NGA: https://bbs.nga.cn/read.php?tid=5483616
   - Curse: https://www.curseforge.com/wow/addons/ndui
@@ -52,7 +52,7 @@ You can also contact me via [GitHub](https://github.com/siweia/NDui).
 <br>A: Make sure you know the options from GUI panel and **the slash cmd list from /ndui**.</br>
 
 **Q: How to change opacity of UI? How to disable the font outlines?**
-<br>A: /ac.</br>
+<br>A: GUI-Skins.</br>
 
 **Q: How to setup the spells on pensonal resource bar?**
 <br>A: Search folder "Lumos" and find your own class, it can only be changed in LUA files.</br>

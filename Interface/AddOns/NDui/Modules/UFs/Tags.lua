@@ -68,9 +68,7 @@ oUF.Tags.Methods["color"] = function(unit)
 	local class = select(2, UnitClass(unit))
 	local reaction = UnitReaction(unit, "player")
 
-	if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
-		return "|cffA0A0A0"
-	elseif UnitIsTapDenied(unit) then
+	if UnitIsTapDenied(unit) then
 		return B.HexRGB(oUF.colors.tapped)
 	elseif UnitIsPlayer(unit) then
 		return B.HexRGB(oUF.colors.class[class])
@@ -145,13 +143,13 @@ oUF.Tags.Events["fulllevel"] = "UNIT_LEVEL PLAYER_LEVEL_UP UNIT_CLASSIFICATION_C
 oUF.Tags.Methods["raidhp"] = function(unit)
 	if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
 		return oUF.Tags.Methods["DDG"](unit)
-	elseif NDuiDB["UFs"]["RaidHPMode"] == 2 then
+	elseif C.db["UFs"]["RaidHPMode"] == 2 then
 		local per = oUF.Tags.Methods["perhp"](unit) or 0
 		return ColorPercent(per)
-	elseif NDuiDB["UFs"]["RaidHPMode"] == 3 then
+	elseif C.db["UFs"]["RaidHPMode"] == 3 then
 		local cur = UnitHealth(unit)
 		return B.Numb(cur)
-	elseif NDuiDB["UFs"]["RaidHPMode"] == 4 then
+	elseif C.db["UFs"]["RaidHPMode"] == 4 then
 		local loss = UnitHealthMax(unit) - UnitHealth(unit)
 		if loss == 0 then return end
 		return B.Numb(loss)
@@ -162,7 +160,7 @@ oUF.Tags.Events["raidhp"] = "UNIT_HEALTH UNIT_MAXHEALTH UNIT_NAME_UPDATE UNIT_CO
 -- Nameplate tags
 oUF.Tags.Methods["nphp"] = function(unit)
 	local per = oUF.Tags.Methods["perhp"](unit) or 0
-	if NDuiDB["Nameplate"]["FullHealth"] then
+	if C.db["Nameplate"]["FullHealth"] then
 		local cur = UnitHealth(unit)
 		return ValueAndPercent(cur, per)
 	elseif per < 100 then

@@ -6,14 +6,14 @@ local function reskinHelpTips(self)
 		if not frame.styled then
 			if frame.OkayButton then B.Reskin(frame.OkayButton) end
 			if frame.CloseButton then B.ReskinClose(frame.CloseButton) end
-	
+
 			frame.styled = true
 		end
 	end
 end
 
 tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
 
 	reskinHelpTips(HelpTip)
 	hooksecurefunc(HelpTip, "Show", reskinHelpTips)

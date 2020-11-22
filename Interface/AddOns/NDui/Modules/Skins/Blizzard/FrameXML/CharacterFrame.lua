@@ -2,7 +2,7 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
 tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
 
 	local r, g, b = DB.r, DB.g, DB.b
 
@@ -60,6 +60,11 @@ tinsert(C.defaultThemes, function()
 		highlight:SetInside()
 	end
 
+	local function UpdateCosmetic(self)
+		local itemLink = GetInventoryItemLink("player", self:GetID())
+		self.IconOverlay:SetShown(itemLink and IsCosmeticItem(itemLink))
+	end
+
 	local slots = {
 		"Head", "Neck", "Shoulder", "Shirt", "Chest", "Waist", "Legs", "Feet", "Wrist",
 		"Hands", "Finger0", "Finger1", "Trinket0", "Trinket1", "Back", "MainHand",
@@ -77,6 +82,7 @@ tinsert(C.defaultThemes, function()
 		cooldown:SetInside()
 
 		slot.ignoreTexture:SetTexture("Interface\\PaperDollInfoFrame\\UI-GearManager-LeaveItem-Transparent")
+		slot.IconOverlay:SetAtlas("CosmeticIconFrame")
 		slot.IconOverlay:SetInside()
 		B.ReskinIconBorder(slot.IconBorder)
 
@@ -108,6 +114,7 @@ tinsert(C.defaultThemes, function()
 			button.icon:SetShown(GetInventoryItemTexture("player", button:GetID()) ~= nil)
 			colourPopout(button.popoutButton)
 		end
+		UpdateCosmetic(button)
 		UpdateHighlight(button)
 	end)
 

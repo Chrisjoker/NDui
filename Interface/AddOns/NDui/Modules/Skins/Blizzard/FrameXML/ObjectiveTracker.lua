@@ -5,18 +5,25 @@ local r, g, b = DB.r, DB.g, DB.b
 local select, pairs = select, pairs
 
 local function reskinQuestIcon(button)
-	if not button or button.styled then return end
+	if not button then return end
 
-	button:SetNormalTexture("")
-	button:SetPushedTexture("")
-	button:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
-	local icon = button.icon or button.Icon
-	if icon then
-		B.ReskinIcon(icon, true)
-		icon:SetInside()
+	if not button.styled then
+		button:SetSize(24, 24)
+		button:SetNormalTexture("")
+		button:SetPushedTexture("")
+		button:GetHighlightTexture():SetColorTexture(1, 1, 1, .25)
+		local icon = button.icon or button.Icon
+		if icon then
+			button.bg = B.ReskinIcon(icon, true)
+			icon:SetInside()
+		end
+
+		button.styled = true
 	end
 
-	button.styled = true
+	if button.bg then
+		button.bg:SetFrameLevel(0)
+	end
 end
 
 local function reskinQuestIcons(_, block)
@@ -33,6 +40,7 @@ local function reskinHeader(header)
 	bg:SetVertexColor(r, g, b, .8)
 	bg:SetPoint("BOTTOMLEFT", 0, -4)
 	bg:SetSize(250, 30)
+	header.bg = bg -- accessable for other addons
 end
 
 local function reskinBarTemplate(bar)

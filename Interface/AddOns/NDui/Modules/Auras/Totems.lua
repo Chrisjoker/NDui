@@ -1,7 +1,6 @@
 local _, ns = ...
 local B, C, L, DB = unpack(ns)
 local A = B:GetModule("Auras")
-local margin = C.margin
 
 local _G = _G
 local GetTotemInfo = GetTotemInfo
@@ -10,8 +9,9 @@ local GetTotemInfo = GetTotemInfo
 local totems = {}
 
 function A:TotemBar_Init()
-	local vertical = NDuiDB["Auras"]["VerticalTotems"]
-	local iconSize = NDuiDB["Auras"]["TotemSize"]
+	local margin = C.margin
+	local vertical = C.db["Auras"]["VerticalTotems"]
+	local iconSize = C.db["Auras"]["TotemSize"]
 	local width = vertical and (iconSize + margin*2) or (iconSize*4 + margin*5)
 	local height = vertical and (iconSize*4 + margin*5) or (iconSize + margin*2)
 
@@ -74,7 +74,7 @@ function A:TotemBar_Update()
 end
 
 function A:Totems()
-	if not NDuiDB["Auras"]["Totems"] then return end
+	if not C.db["Auras"]["Totems"] then return end
 
 	A:TotemBar_Init()
 	B:RegisterEvent("PLAYER_ENTERING_WORLD", A.TotemBar_Update)

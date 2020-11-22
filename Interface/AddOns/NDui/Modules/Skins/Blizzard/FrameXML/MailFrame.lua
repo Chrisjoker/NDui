@@ -2,7 +2,7 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
 tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
 
 	local texL, texR, texT, texB = unpack(DB.TexCoord)
 
@@ -42,6 +42,7 @@ tinsert(C.defaultThemes, function()
 	B.ReskinArrow(InboxPrevPageButton, "left")
 	B.ReskinArrow(InboxNextPageButton, "right")
 
+	B.CreateBDFrame(OpenMailScrollFrame, .25)
 	local bg = B.CreateBDFrame(SendMailScrollFrame, .25)
 	bg:SetPoint("TOPLEFT", 6, 0)
 

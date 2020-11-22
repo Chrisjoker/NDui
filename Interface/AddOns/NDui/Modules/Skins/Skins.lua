@@ -8,25 +8,6 @@ local IsAddOnLoaded = IsAddOnLoaded
 C.defaultThemes = {}
 C.themes = {}
 
-StaticPopupDialogs["AURORA_CLASSIC_WARNING"] = {
-	text = L["AuroraClassic warning"],
-	button1 = DISABLE,
-	hideOnEscape = false,
-	whileDead = 1,
-	OnAccept = function()
-		DisableAddOn("Aurora", true)
-		DisableAddOn("AuroraClassic", true)
-		ReloadUI()
-	end,
-}
-function S:DetectAurora()
-	if DB.isDeveloper then return end
-
-	if IsAddOnLoaded("AuroraClassic") or IsAddOnLoaded("Aurora") then
-		StaticPopup_Show("AURORA_CLASSIC_WARNING")
-	end
-end
-
 function S:LoadDefaultSkins()
 	if IsAddOnLoaded("AuroraClassic") or IsAddOnLoaded("Aurora") then return end
 
@@ -36,7 +17,7 @@ function S:LoadDefaultSkins()
 	end
 	wipe(C.defaultThemes)
 
-	if not NDuiDB["Skins"]["BlizzardSkins"] then return end
+	if not C.db["Skins"]["BlizzardSkins"] then return end
 
 	for addonName, func in pairs(C.themes) do
 		local isLoaded, isFinished = IsAddOnLoaded(addonName)
@@ -56,7 +37,6 @@ function S:LoadDefaultSkins()
 end
 
 function S:OnLogin()
-	self:DetectAurora()
 	self:LoadDefaultSkins()
 
 	-- Add Skins
@@ -75,7 +55,7 @@ function S:OnLogin()
 end
 
 function S:GetToggleDirection()
-	local direc = NDuiDB["Skins"]["ToggleDirection"]
+	local direc = C.db["Skins"]["ToggleDirection"]
 	if direc == 1 then
 		return ">", "<", "RIGHT", "LEFT", -2, 0, 20, 80
 	elseif direc == 2 then
@@ -142,7 +122,7 @@ end
 
 function S:LoadWithAddOn(addonName, value, func)
 	local function loadFunc(event, addon)
-		if not NDuiDB["Skins"][value] then return end
+		if not C.db["Skins"][value] then return end
 
 		if event == "PLAYER_ENTERING_WORLD" then
 			B:UnregisterEvent(event, loadFunc)

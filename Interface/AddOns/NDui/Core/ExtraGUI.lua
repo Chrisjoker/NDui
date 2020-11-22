@@ -243,7 +243,7 @@ function G:SetupRaidDebuffs(parent)
 			self:SetText(prio)
 		end)
 		prioBox.title = L["Tips"]
-		B.AddTooltip(prioBox, "ANCHOR_RIGHT", L["Prio Editbox"], "info")
+		B.AddTooltip(prioBox, "ANCHOR_TOPRIGHT", L["Prio Editbox"], "info")
 		bar.prioBox = prioBox
 
 		return bar
@@ -353,7 +353,7 @@ function G:SetupClickCast(parent)
 		B.AddTooltip(icon, "ANCHOR_RIGHT", value, "system")
 		close:SetScript("OnClick", function()
 			bar:Hide()
-			NDuiDB["RaidClickSets"][clickSet] = nil
+			C.db["RaidClickSets"][clickSet] = nil
 			barTable[clickSet] = nil
 			sortBars(barTable)
 		end)
@@ -390,7 +390,7 @@ function G:SetupClickCast(parent)
 		button1 = YES,
 		button2 = NO,
 		OnAccept = function()
-			NDuiDB["RaidClickSets"] = nil
+			C.db["RaidClickSets"] = nil
 			ReloadUI()
 		end,
 		whileDead = 1,
@@ -406,10 +406,10 @@ function G:SetupClickCast(parent)
 		if (not tonumber(value)) and value ~= "target" and value ~= "focus" and value ~= "follow" and not strmatch(value, "/") then UIErrorsFrame:AddMessage(DB.InfoColor..L["Invalid Input"]) return end
 		if not modKey or modKey == NONE then modKey = "" end
 		local clickSet = modKey..key
-		if NDuiDB["RaidClickSets"][clickSet] then UIErrorsFrame:AddMessage(DB.InfoColor..L["Existing ClickSet"]) return end
+		if C.db["RaidClickSets"][clickSet] then UIErrorsFrame:AddMessage(DB.InfoColor..L["Existing ClickSet"]) return end
 
-		NDuiDB["RaidClickSets"][clickSet] = {key, modKey, value}
-		createBar(scroll.child, NDuiDB["RaidClickSets"][clickSet])
+		C.db["RaidClickSets"][clickSet] = {key, modKey, value}
+		createBar(scroll.child, C.db["RaidClickSets"][clickSet])
 		clearEdit(options)
 	end
 
@@ -425,7 +425,7 @@ function G:SetupClickCast(parent)
 		clearEdit(options)
 	end)
 
-	for _, v in pairs(NDuiDB["RaidClickSets"]) do
+	for _, v in pairs(C.db["RaidClickSets"]) do
 		createBar(scroll.child, v)
 	end
 end
@@ -651,7 +651,7 @@ function G:SetupBuffIndicator(parent)
 			if NDuiADB["RaidAuraWatch"][spellID] then UIErrorsFrame:AddMessage(DB.InfoColor..L["Existing ID"]) return end
 			NDuiADB["RaidAuraWatch"][spellID] = true
 		else
-			anchor, r, g, b = parent.dd.Text:GetText(), parent.swatch.tex:GetVertexColor()
+			anchor, r, g, b = parent.dd.Text:GetText(), parent.swatch.tex:GetColor()
 			showAll = parent.showAll:GetChecked() or nil
 			if NDuiADB["CornerBuffs"][DB.MyClass][spellID] then UIErrorsFrame:AddMessage(DB.InfoColor..L["Existing ID"]) return end
 			anchor = decodeAnchor[anchor]
@@ -697,7 +697,7 @@ function G:SetupBuffIndicator(parent)
 		scroll.box:SetPoint("TOPLEFT", 10, -10)
 		scroll.box:SetMaxLetters(6)
 		scroll.box.title = L["Tips"]
-		B.AddTooltip(scroll.box, "ANCHOR_RIGHT", L["ID Intro"], "info")
+		B.AddTooltip(scroll.box, "ANCHOR_TOPRIGHT", L["ID Intro"], "info")
 
 		scroll.add = B.CreateButton(frame, 45, 25, ADD)
 		scroll.add:SetPoint("TOPRIGHT", -8, -10)
@@ -716,7 +716,7 @@ function G:SetupBuffIndicator(parent)
 				createBar(scroll.child, index, spellID)
 			end
 		else
-			scroll.dd = B.CreateDropDown(frame, 45, 25, anchors)
+			scroll.dd = B.CreateDropDown(frame, 60, 25, anchors)
 			scroll.dd:SetPoint("TOPLEFT", 10, -10)
 			scroll.dd.options[1]:Click()
 
@@ -724,7 +724,7 @@ function G:SetupBuffIndicator(parent)
 				scroll.dd.options[i]:HookScript("OnEnter", optionOnEnter)
 				scroll.dd.options[i]:HookScript("OnLeave", B.HideTooltip)
 			end
-			scroll.box:SetPoint("TOPLEFT", scroll.dd, "TOPRIGHT", 20, 0)
+			scroll.box:SetPoint("TOPLEFT", scroll.dd, "TOPRIGHT", 5, 0)
 
 			local swatch = B.CreateColorSwatch(frame, "")
 			swatch:SetPoint("LEFT", scroll.box, "RIGHT", 5, 0)
@@ -735,7 +735,7 @@ function G:SetupBuffIndicator(parent)
 			showAll:SetHitRectInsets(0, 0, 0, 0)
 			showAll.bg:SetBackdropBorderColor(1, .8, 0, .5)
 			showAll.title = L["Tips"]
-			B.AddTooltip(showAll, "ANCHOR_RIGHT", L["ShowAllTip"], "info")
+			B.AddTooltip(showAll, "ANCHOR_TOPRIGHT", L["ShowAllTip"], "info")
 			scroll.showAll = showAll
 
 			for spellID, value in pairs(NDuiADB["CornerBuffs"][DB.MyClass]) do
@@ -755,14 +755,14 @@ end
 local function sliderValueChanged(self, v)
 	local current = tonumber(format("%.0f", v))
 	self.value:SetText(current)
-	NDuiDB["UFs"][self.__value] = current
+	C.db["UFs"][self.__value] = current
 	self.__update()
 end
 
 local function createOptionSlider(parent, title, minV, maxV, defaultV, x, y, value, func)
 	local slider = B.CreateSlider(parent, title, minV, maxV, 1, x, y)
-	slider:SetValue(NDuiDB["UFs"][value])
-	slider.value:SetText(NDuiDB["UFs"][value])
+	slider:SetValue(C.db["UFs"][value])
+	slider.value:SetText(C.db["UFs"][value])
 	slider.__value = value
 	slider.__update = func
 	slider.__default = defaultV
@@ -770,15 +770,15 @@ local function createOptionSlider(parent, title, minV, maxV, defaultV, x, y, val
 end
 
 local function SetUnitFrameSize(self, unit)
-	local width = NDuiDB["UFs"][unit.."Width"]
-	local healthHeight = NDuiDB["UFs"][unit.."Height"]
-	local powerHeight = NDuiDB["UFs"][unit.."PowerHeight"]
+	local width = C.db["UFs"][unit.."Width"]
+	local healthHeight = C.db["UFs"][unit.."Height"]
+	local powerHeight = C.db["UFs"][unit.."PowerHeight"]
 	local height = healthHeight + powerHeight + C.mult
 	self:SetSize(width, height)
 	self.Health:SetHeight(healthHeight)
 	self.Power:SetHeight(powerHeight)
 	if self.powerText then
-		self.powerText:SetPoint("RIGHT", -3, NDuiDB["UFs"][unit.."PowerOffset"])
+		self.powerText:SetPoint("RIGHT", -3, C.db["UFs"][unit.."PowerOffset"])
 	end
 end
 
@@ -878,8 +878,8 @@ function G:SetupRaidFrame(parent)
 	local function resizeRaidFrame()
 		for _, frame in pairs(ns.oUF.objects) do
 			if frame.mystyle == "raid" and not frame.isPartyFrame and not frame.isPartyPet then
-				if NDuiDB["UFs"]["SimpleMode"] then
-					local scale = NDuiDB["UFs"]["SimpleRaidScale"]/10
+				if C.db["UFs"]["SimpleMode"] then
+					local scale = C.db["UFs"]["SimpleRaidScale"]/10
 					local frameWidth = 100*scale
 					local frameHeight = 20*scale
 					local powerHeight = 2*scale
@@ -930,8 +930,8 @@ function G:SetupCastbar(parent)
 	local scroll = G:CreateScroll(panel, 260, 540)
 
 	createOptionTitle(scroll.child, L["Castbar Colors"], -10)
-	createOptionSwatch(scroll.child, L["Interruptible Color"], NDuiDB["UFs"]["CastingColor"], 40, -40)
-	createOptionSwatch(scroll.child, L["NotInterruptible Color"], NDuiDB["UFs"]["NotInterruptColor"], 40, -70)
+	createOptionSwatch(scroll.child, L["Interruptible Color"], C.db["UFs"]["CastingColor"], 40, -40)
+	createOptionSwatch(scroll.child, L["NotInterruptible Color"], C.db["UFs"]["NotInterruptColor"], 40, -70)
 
 	local defaultValue = {
 		["Player"] = {300, 20},
@@ -947,7 +947,7 @@ function G:SetupCastbar(parent)
 
 	local function updatePlayerCastbar()
 		if _G.oUF_Player then
-			local width, height = NDuiDB["UFs"]["PlayerCBWidth"], NDuiDB["UFs"]["PlayerCBHeight"]
+			local width, height = C.db["UFs"]["PlayerCBWidth"], C.db["UFs"]["PlayerCBHeight"]
 			_G.oUF_Player.Castbar:SetSize(width, height)
 			_G.oUF_Player.Castbar.Icon:SetSize(height, height)
 			_G.oUF_Player.Castbar.mover:Show()
@@ -967,7 +967,7 @@ function G:SetupCastbar(parent)
 
 	local function updateTargetCastbar()
 		if _G.oUF_Target then
-			local width, height = NDuiDB["UFs"]["TargetCBWidth"], NDuiDB["UFs"]["TargetCBHeight"]
+			local width, height = C.db["UFs"]["TargetCBWidth"], C.db["UFs"]["TargetCBHeight"]
 			_G.oUF_Target.Castbar:SetSize(width, height)
 			_G.oUF_Target.Castbar.Icon:SetSize(height, height)
 			_G.oUF_Target.Castbar.mover:Show()
@@ -978,7 +978,7 @@ function G:SetupCastbar(parent)
 
 	local function updateFocusCastbar()
 		if _G.oUF_Focus then
-			local width, height = NDuiDB["UFs"]["FocusCBWidth"], NDuiDB["UFs"]["FocusCBHeight"]
+			local width, height = C.db["UFs"]["FocusCBWidth"], C.db["UFs"]["FocusCBHeight"]
 			_G.oUF_Focus.Castbar:SetSize(width, height)
 			_G.oUF_Focus.Castbar.Icon:SetSize(height, height)
 			_G.oUF_Focus.Castbar.mover:Show()
@@ -1017,24 +1017,26 @@ function G:SetupBagFilter(parent)
 		[2] = "FilterConsumable",
 		[3] = "FilterAzerite",
 		[4] = "FilterEquipment",
-		[5] = "FilterLegendary",
-		[6] = "FilterMount",
-		[7] = "FilterFavourite",
-		[8] = "FilterGoods",
+		[5] = "FilterEquipSet",
+		[6] = "FilterLegendary",
+		[7] = "FilterMount",
+		[8] = "FilterFavourite",
+		[9] = "FilterGoods",
+		[10] = "FilterQuest",
 	}
 
 	local Bags = B:GetModule("Bags")
 	local function filterOnClick(self)
 		local value = self.__value
-		NDuiDB["Bags"][value] = not NDuiDB["Bags"][value]
-		self:SetChecked(NDuiDB["Bags"][value])
+		C.db["Bags"][value] = not C.db["Bags"][value]
+		self:SetChecked(C.db["Bags"][value])
 		Bags:UpdateAllBags()
 	end
 
 	local offset = 10
 	for _, value in ipairs(filterOptions) do
 		local box = createOptionCheck(scroll, offset, L[value])
-		box:SetChecked(NDuiDB["Bags"][value])
+		box:SetChecked(C.db["Bags"][value])
 		box.__value = value
 		box:SetScript("OnClick", filterOnClick)
 

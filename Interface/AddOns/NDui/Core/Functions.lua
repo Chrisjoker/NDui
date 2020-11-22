@@ -58,7 +58,7 @@ do
 		elseif s > 3 then
 			return format("|cffffff00%d|r", s), s - floor(s)
 		else
-			if NDuiDB["Actionbar"]["DecimalCD"] then
+			if C.db["Actionbar"]["DecimalCD"] then
 				return format("|cffff0000%.1f|r", s), s - format("%.1f", s)
 			else
 				return format("|cffff0000%d|r", s + .5), s - floor(s)
@@ -170,6 +170,7 @@ do
 	local essenceDescription = GetSpellDescription(277253)
 	local ITEM_SPELL_TRIGGER_ONEQUIP = ITEM_SPELL_TRIGGER_ONEQUIP
 	local RETRIEVING_ITEM_INFO = RETRIEVING_ITEM_INFO
+
 	local tip = CreateFrame("GameTooltip", "NDui_ScanTooltip", nil, "GameTooltipTemplate")
 	B.ScanTip = tip
 
@@ -349,6 +350,8 @@ do
 		"Portrait",
 		"portrait",
 		"ScrollFrameBorder",
+		"ScrollUpBorder",
+		"ScrollDownBorder",
 	}
 	function B:StripTextures(kill)
 		local frameName = self.GetName and self:GetName()
@@ -382,6 +385,14 @@ end
 
 -- UI widgets
 do
+	-- HelpTip
+	function B.HelpInfoAcknowledge(callbackArg)
+		NDuiADB["Help"][callbackArg] = true
+	end
+
+	-- Dropdown menu
+	B.EasyMenu = CreateFrame("Frame", "NDui_EasyMenu", UIParent, "UIDropDownMenuTemplate")
+
 	-- Fontstring
 	function B:CreateFS(size, text, color, anchor, x, y)
 		local fs = self:CreateFontString(nil, "OVERLAY")
@@ -464,28 +475,30 @@ do
 
 	-- Background texture
 	function B:CreateTex()
-		if self.Tex then return end
+		if self.__bgTex then return end
 
 		local frame = self
-		if self:GetObjectType() == "Texture" then frame = self:GetParent() end
+		if self:IsObjectType("Texture") then frame = self:GetParent() end
 
-		self.Tex = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-		self.Tex:SetAllPoints(self)
-		self.Tex:SetTexture(DB.bgTex, true, true)
-		self.Tex:SetHorizTile(true)
-		self.Tex:SetVertTile(true)
-		self.Tex:SetBlendMode("ADD")
+		local tex = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+		tex:SetAllPoints(self)
+		tex:SetTexture(DB.bgTex, true, true)
+		tex:SetHorizTile(true)
+		tex:SetVertTile(true)
+		tex:SetBlendMode("ADD")
+
+		self.__bgTex = tex
 	end
 
 	-- Backdrop shadow
 	local shadowBackdrop = {edgeFile = DB.glowTex}
 
 	function B:CreateSD(size, override)
-		if not override and not NDuiDB["Skins"]["Shadow"] then return end
+		if not override and not C.db["Skins"]["Shadow"] then return end
 		if self.__shadow then return end
 
 		local frame = self
-		if self:GetObjectType() == "Texture" then frame = self:GetParent() end
+		if self:IsObjectType("Texture") then frame = self:GetParent() end
 
 		shadowBackdrop.edgeSize = size or 5
 		self.__shadow = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -507,7 +520,7 @@ do
 	function B:CreateBD(a)
 		defaultBackdrop.edgeSize = C.mult
 		self:SetBackdrop(defaultBackdrop)
-		self:SetBackdropColor(0, 0, 0, a or NDuiDB["Skins"]["SkinAlpha"])
+		self:SetBackdropColor(0, 0, 0, a or C.db["Skins"]["SkinAlpha"])
 		self:SetBackdropBorderColor(0, 0, 0)
 		if not a then tinsert(C.frames, self) end
 	end
@@ -516,7 +529,7 @@ do
 		local tex = self:CreateTexture(nil, "BORDER")
 		tex:SetInside()
 		tex:SetTexture(DB.bdTex)
-		if NDuiDB["Skins"]["FlatMode"] then
+		if C.db["Skins"]["FlatMode"] then
 			tex:SetVertexColor(.3, .3, .3, .25)
 		else
 			tex:SetGradientAlpha("Vertical", 0, 0, 0, .5, .3, .3, .3, .3)
@@ -528,7 +541,7 @@ do
 	-- Handle frame
 	function B:CreateBDFrame(a, gradient)
 		local frame = self
-		if self:GetObjectType() == "Texture" then frame = self:GetParent() end
+		if self:IsObjectType("Texture") then frame = self:GetParent() end
 		local lvl = frame:GetFrameLevel()
 
 		local bg = CreateFrame("Frame", nil, frame, "BackdropTemplate")
@@ -645,13 +658,15 @@ do
 		self.__owner.bg:SetBackdropBorderColor(color.r, color.g, color.b)
 	end
 	local function updateIconBorderColor(self, r, g, b)
-		if r == .65882 then r, g, b = 0, 0, 0 end
+		if not r or (r==.65882 and g==.65882 and b==.65882) or (r>.99 and g>.99 and b>.99) then
+			r, g, b = 0, 0, 0
+		end
 		self.__owner.bg:SetBackdropBorderColor(r, g, b)
 	end
 	local function resetIconBorderColor(self)
 		self.__owner.bg:SetBackdropBorderColor(0, 0, 0)
 	end
-	function B:ReskinIconBorder()
+	function B:ReskinIconBorder(needInit)
 		self:SetAlpha(0)
 		self.__owner = self:GetParent()
 		if not self.__owner.bg then return end
@@ -659,6 +674,9 @@ do
 			hooksecurefunc(self, "SetAtlas", updateIconBorderColorByAtlas)
 		else
 			hooksecurefunc(self, "SetVertexColor", updateIconBorderColor)
+			if needInit then
+				self:SetVertexColor(self:GetVertexColor()) -- for border with color before hook
+			end
 		end
 		hooksecurefunc(self, "Hide", resetIconBorderColor)
 	end
@@ -689,7 +707,7 @@ do
 	local function Button_OnEnter(self)
 		if not self:IsEnabled() then return end
 
-		if NDuiDB["Skins"]["FlatMode"] then
+		if C.db["Skins"]["FlatMode"] then
 			self.__gradient:SetVertexColor(cr / 4, cg / 4, cb / 4)
 		else
 			self.__bg:SetBackdropColor(cr, cg, cb, .25)
@@ -697,7 +715,7 @@ do
 		self.__bg:SetBackdropBorderColor(cr, cg, cb)
 	end
 	local function Button_OnLeave(self)
-		if NDuiDB["Skins"]["FlatMode"] then
+		if C.db["Skins"]["FlatMode"] then
 			self.__gradient:SetVertexColor(.3, .3, .3, .25)
 		else
 			self.__bg:SetBackdropColor(0, 0, 0, 0)
@@ -772,7 +790,7 @@ do
 		self.bg:SetBackdropBorderColor(0, 0, 0)
 	end
 	local function Menu_OnMouseUp(self)
-		self.bg:SetBackdropColor(0, 0, 0, NDuiDB["Skins"]["SkinAlpha"])
+		self.bg:SetBackdropColor(0, 0, 0, C.db["Skins"]["SkinAlpha"])
 	end
 	local function Menu_OnMouseDown(self)
 		self.bg:SetBackdropColor(cr, cg, cb, .25)
@@ -1327,6 +1345,7 @@ do
 		eb:SetTextInsets(5, 5, 0, 0)
 		eb:SetFont(DB.Font[1], DB.Font[2]+2, DB.Font[3])
 		eb.bg = B.CreateBDFrame(eb, .25, true)
+		eb.bg:SetAllPoints()
 		eb:SetScript("OnEscapePressed", editBoxClearFocus)
 		eb:SetScript("OnEnterPressed", editBoxClearFocus)
 
@@ -1439,6 +1458,14 @@ do
 		ColorPickerFrame:Show()
 	end
 
+	local function GetSwatchTexColor(tex)
+		local r, g, b = tex:GetVertexColor()
+		r = B:Round(r, 2)
+		g = B:Round(g, 2)
+		b = B:Round(b, 2)
+		return r, g, b
+	end
+
 	function B:CreateColorSwatch(name, color)
 		color = color or {r=1, g=1, b=1}
 
@@ -1450,6 +1477,7 @@ do
 		tex:SetInside()
 		tex:SetTexture(DB.bdTex)
 		tex:SetVertexColor(color.r, color.g, color.b)
+		tex.GetColor = GetSwatchTexColor
 
 		swatch.tex = tex
 		swatch.color = color

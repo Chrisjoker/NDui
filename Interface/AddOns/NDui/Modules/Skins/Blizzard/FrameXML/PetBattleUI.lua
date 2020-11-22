@@ -2,7 +2,7 @@ local _, ns = ...
 local B, C, L, DB = unpack(ns)
 
 tinsert(C.defaultThemes, function()
-	if not NDuiDB["Skins"]["PetBattle"] then return end
+	if not C.db["Skins"]["PetBattle"] then return end
 
 	local r, g, b, pairs = DB.r, DB.g, DB.b, pairs
 
@@ -298,6 +298,7 @@ tinsert(C.defaultThemes, function()
 		local frame = CreateFrame("Frame", nil, UIParent)
 		frame:SetSize(width, height)
 		frame:SetPoint(anchor, UIParent, "BOTTOM", 0, 3)
+		frame:SetFrameLevel(0)
 		local tex = B.SetGradient(frame, "H", 0, 0, 0, v[1], v[2], width, height)
 		tex:SetPoint("CENTER")
 		local line = B.SetGradient(frame, "H", r, g, b, v[1], v[2], width, C.mult)

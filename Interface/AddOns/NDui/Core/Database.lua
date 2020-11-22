@@ -24,6 +24,7 @@ LE_ITEM_QUALITY_HEIRLOOM = Enum.ItemQuality.Heirloom
 -- Colors
 DB.MyName = UnitName("player")
 DB.MyRealm = GetRealmName()
+DB.MyFullName = DB.MyName.."-"..DB.MyRealm
 DB.MyClass = select(2, UnitClass("player"))
 DB.MyFaction = UnitFactionGroup("player")
 DB.ClassList = {}
@@ -55,6 +56,7 @@ DB.QualityColors[LE_ITEM_QUALITY_COMMON] = {r = 0, g = 0, b = 0}
 -- Fonts
 DB.Font = {STANDARD_TEXT_FONT, 12, "OUTLINE"}
 DB.LineString = DB.GreyColor.."---------------"
+DB.NDuiString = "|cff0080ffNDui:|r"
 
 -- Textures
 local Media = "Interface\\Addons\\NDui\\Media\\"
@@ -71,6 +73,8 @@ DB.chatLogo = Media.."Hutu\\logoSmall"
 DB.logoTex = Media.."Hutu\\logo"
 DB.closeTex = Media.."Hutu\\close"
 DB.ArrowUp = Media.."Hutu\\arrow"
+DB.afdianTex = Media.."Hutu\\Afdian"
+DB.patreonTex = Media.."Hutu\\Patreon"
 DB.mailTex = "Interface\\Minimap\\Tracking\\Mailbox"
 DB.gearTex = "Interface\\WorldMap\\Gear_64"
 DB.eyeTex = "Interface\\Minimap\\Raid_Icon"		-- blue: \\Dungeon_Icon
@@ -226,6 +230,8 @@ DB.ReminderBuffs = {
 				[8679] = true,		-- 致伤药膏
 				[315584] = true,	-- 速效药膏
 			},
+			texture = 132273,
+			depend = 315584,
 			combat = true,
 			instance = true,
 			pvp = true,
@@ -234,6 +240,7 @@ DB.ReminderBuffs = {
 				[3408] = true,		-- 减速药膏
 				[5761] = true,		-- 迟钝药膏
 			},
+			depend = 3408,
 			pvp = true,
 		},
 	},
