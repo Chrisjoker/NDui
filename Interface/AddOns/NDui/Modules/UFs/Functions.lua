@@ -7,6 +7,7 @@ local AURA = B:GetModule("Auras")
 
 local format, floor = string.format, math.floor
 local pairs, next = pairs, next
+local UnitFrame_OnEnter, UnitFrame_OnLeave = UnitFrame_OnEnter, UnitFrame_OnLeave
 
 -- Custom colors
 oUF.colors.smooth = {1, 0, 0, .85, .8, .45, .1, .1, .1}
@@ -40,6 +41,16 @@ local function retVal(self, val1, val2, val3, val4, val5)
 end
 
 -- Elements
+local function UF_OnEnter(self)
+	UnitFrame_OnEnter(self)
+	self.Highlight:Show()
+end
+
+local function UF_OnLeave(self)
+	UnitFrame_OnLeave(self)
+	self.Highlight:Hide()
+end
+
 function UF:CreateHeader(self)
 	local hl = self:CreateTexture(nil, "OVERLAY")
 	hl:SetAllPoints()
@@ -51,21 +62,23 @@ function UF:CreateHeader(self)
 	self.Highlight = hl
 
 	self:RegisterForClicks("AnyUp")
-	self:HookScript("OnEnter", function()
-		UnitFrame_OnEnter(self)
-		self.Highlight:Show()
-	end)
-	self:HookScript("OnLeave", function()
-		UnitFrame_OnLeave(self)
-		self.Highlight:Hide()
-	end)
+	self:HookScript("OnEnter", UF_OnEnter)
+	self:HookScript("OnLeave", UF_OnLeave)
 end
 
 local function UpdateHealthColorByIndex(health, index)
 	health.colorClass = (index == 2)
-	health.colorTapping = (index == 2)
 	health.colorReaction = (index == 2)
-	health.colorDisconnected = (index == 2)
+	if health.SetColorTapping then
+		health:SetColorTapping(index == 2)
+	else
+		health.colorTapping = (index == 2)
+	end
+	if health.SetColorDisconnected then
+		health:SetColorDisconnected(index == 2)
+	else
+		health.colorDisconnected = (index == 2)
+	end
 	health.colorSmooth = (index == 3)
 	if index == 1 then
 		health:SetStatusBarColor(.1, .1, .1)
@@ -243,9 +256,17 @@ end
 local function UpdatePowerColorByIndex(power, index)
 	power.colorPower = (index == 2)
 	power.colorClass = (index ~= 2)
-	power.colorTapping = (index ~= 2)
-	power.colorDisconnected = (index ~= 2)
 	power.colorReaction = (index ~= 2)
+	if power.SetColorTapping then
+		power:SetColorTapping(index ~= 2)
+	else
+		power.colorTapping = (index ~= 2)
+	end
+	if power.SetColorDisconnected then
+		power:SetColorDisconnected(index ~= 2)
+	else
+		power.colorDisconnected = (index ~= 2)
+	end
 end
 
 function UF:UpdatePowerBarColor(self, force)
@@ -534,6 +555,7 @@ function UF:CreateCastBar(self)
 			lag:ClearAllPoints()
 			lag:SetPoint("BOTTOM", cb, "TOP", 0, 2)
 			cb.Lag = lag
+			self:RegisterEvent("GLOBAL_MOUSE_UP", B.OnCastSent, true) -- Fix quests with WorldFrame interaction
 			self:RegisterEvent("CURRENT_SPELL_CAST_CHANGED", B.OnCastSent, true)
 		end
 	elseif mystyle == "nameplate" then
