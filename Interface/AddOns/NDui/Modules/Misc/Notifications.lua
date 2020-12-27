@@ -11,6 +11,7 @@ local UnitName, Ambiguate, GetTime = UnitName, Ambiguate, GetTime
 local GetSpellLink, GetSpellInfo, GetSpellCooldown = GetSpellLink, GetSpellInfo, GetSpellCooldown
 local GetActionInfo, GetMacroSpell, GetMacroItem = GetActionInfo, GetMacroSpell, GetMacroItem
 local GetItemInfo, GetItemInfoFromHyperlink = GetItemInfo, GetItemInfoFromHyperlink
+local C_Timer_After = C_Timer.After
 local C_VignetteInfo_GetVignetteInfo = C_VignetteInfo.GetVignetteInfo
 local C_Texture_GetAtlasInfo = C_Texture.GetAtlasInfo
 local C_ChatInfo_SendAddonMessage = C_ChatInfo.SendAddonMessage
@@ -48,7 +49,7 @@ end
 function M:SoloInfo_Update()
 	local name, instType, diffID, diffName, _, _, _, instID = GetInstanceInfo()
 
-	if instType ~= "none" and diffID ~= 24 and instList[instID] and instList[instID] ~= diffID then
+	if (diffName and diffName ~= "") and instType ~= "none" and diffID ~= 24 and instList[instID] and instList[instID] ~= diffID then
 		M:SoloInfo_Create()
 		soloInfo.Text:SetText(DB.InfoColor..name..DB.MyColor.."\n( "..diffName.." )\n\n"..DB.InfoColor..L["Wrong Difficulty"])
 	else
@@ -56,15 +57,19 @@ function M:SoloInfo_Update()
 	end
 end
 
+function M:SoloInfo_DelayCheck()
+	C_Timer_After(3, M.SoloInfo_Update)
+end
+
 function M:SoloInfo()
 	if C.db["Misc"]["SoloInfo"] then
 		self:SoloInfo_Update()
-		B:RegisterEvent("UPDATE_INSTANCE_INFO", self.SoloInfo_Update)
-		B:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_Update)
+		B:RegisterEvent("PLAYER_ENTERING_WORLD", self.SoloInfo_DelayCheck)
+		B:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_DelayCheck)
 	else
 		if soloInfo then soloInfo:Hide() end
-		B:UnregisterEvent("UPDATE_INSTANCE_INFO", self.SoloInfo_Update)
-		B:UnregisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_Update)
+		B:UnregisterEvent("PLAYER_ENTERING_WORLD", self.SoloInfo_DelayCheck)
+		B:UnregisterEvent("PLAYER_DIFFICULTY_CHANGED", self.SoloInfo_DelayCheck)
 	end
 end
 
@@ -386,6 +391,8 @@ end
 ]]
 local lastTime = 0
 local itemList = {
+	[54710] = true,		-- 随身邮箱
+	[67826] = true,		-- 基维斯
 	[226241] = true,	-- 宁神圣典
 	[256230] = true,	-- 静心圣典
 	[185709] = true,	-- 焦糖鱼宴
@@ -393,7 +400,13 @@ local itemList = {
 	[259410] = true,	-- 船长盛宴
 	[276972] = true,	-- 秘法药锅
 	[286050] = true,	-- 鲜血大餐
-	[265116] = true,	-- 工程战复
+	[265116] = true,	-- 8.0工程战复
+
+	[308458] = true,	-- 惊异怡人大餐
+	[308462] = true,	-- 纵情饕餮盛宴
+	[345130] = true,	-- 9.0工程战复
+	[307157] = true,	-- 永恒药锅
+	[324029] = true,	-- 宁心圣典
 }
 
 function M:ItemAlert_Update(unit, _, spellID)
@@ -569,7 +582,7 @@ function M:CheckIncompatible()
 
 		local disable = B.CreateButton(frame, 150, 25, L["DisableIncompatibleAddon"])
 		disable:SetPoint("BOTTOM", 0, 10)
-		disable.text:SetTextColor(1, 0, 0)
+		disable.text:SetTextColor(1, .8, 0)
 		disable:SetScript("OnClick", function()
 			for _, addon in pairs(IncompatibleList) do
 				DisableAddOn(addon, true)

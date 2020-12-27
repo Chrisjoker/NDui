@@ -119,6 +119,7 @@ do
 	function B.SplitList(list, variable, cleanup)
 		if cleanup then wipe(list) end
 		for word in gmatch(variable, "%S+") do
+			word = tonumber(word) or word -- use number if exists, needs review
 			list[word] = true
 		end
 	end
@@ -1194,7 +1195,7 @@ do
 		local level = self.Level or self.LevelText
 		if level then
 			level:ClearAllPoints()
-			level:SetPoint("BOTTOM", self, 0, 12)
+			level:SetPoint("BOTTOM", self, 0, 15)
 			if self.LevelCircle then self.LevelCircle:Hide() end
 			if self.LevelBorder then self.LevelBorder:SetScale(.0001) end
 		end
@@ -1328,6 +1329,7 @@ do
 
 	function B:CreateCheckBox()
 		local cb = CreateFrame("CheckButton", nil, self, "InterfaceOptionsCheckButtonTemplate")
+		cb:SetScript("OnClick", nil) -- reset onclick handler
 		B.ReskinCheck(cb)
 
 		cb.Type = "CheckBox"
