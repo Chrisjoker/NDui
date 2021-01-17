@@ -821,15 +821,15 @@ do
 		hl:SetInside(bg)
 		hl:SetVertexColor(cr, cg, cb, .25)
 	end
-
-	local function resetTabAnchor(tab)
-		local text = tab.Text or _G[tab:GetName().."Text"]
+  
+	function B:ResetTabAnchor()
+		local text = self.Text or (self.GetName and _G[self:GetName().."Text"])
 		if text then
-			text:SetPoint("CENTER", tab)
+			text:SetPoint("CENTER", self)
 		end
 	end
-	hooksecurefunc("PanelTemplates_DeselectTab", resetTabAnchor)
-	hooksecurefunc("PanelTemplates_SelectTab", resetTabAnchor)
+	hooksecurefunc("PanelTemplates_SelectTab", B.ResetTabAnchor)
+	hooksecurefunc("PanelTemplates_DeselectTab", B.ResetTabAnchor)
 
 	-- Handle scrollframe
 	local function Scroll_OnEnter(self)
@@ -1468,6 +1468,13 @@ do
 		return r, g, b
 	end
 
+	local function resetColorPicker(swatch)
+		local defaultColor = swatch.__default
+		if defaultColor then
+			ColorPickerFrame:SetColorRGB(defaultColor.r, defaultColor.g, defaultColor.b)
+		end
+	end
+
 	function B:CreateColorSwatch(name, color)
 		color = color or {r=1, g=1, b=1}
 
@@ -1484,6 +1491,7 @@ do
 		swatch.tex = tex
 		swatch.color = color
 		swatch:SetScript("OnClick", openColorPicker)
+		swatch:SetScript("OnDoubleClick", resetColorPicker)
 
 		return swatch
 	end

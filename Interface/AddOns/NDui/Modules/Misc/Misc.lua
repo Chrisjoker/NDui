@@ -108,7 +108,7 @@ end
 
 -- Hide boss banner
 function M:ToggleBossBanner()
-	if C.db["Misc"]["HideBanner"] then
+	if C.db["Misc"]["HideBossBanner"] then
 		BossBanner:UnregisterAllEvents()
 	else
 		BossBanner:RegisterEvent("BOSS_KILL")
@@ -370,7 +370,7 @@ function M:MawWidgetFrame()
 	local bar = CreateFrame("StatusBar", nil, UIParent)
 	bar:SetPoint("TOP", 0, -50)
 	bar:SetSize(200, 16)
-	bar:SetMinMaxValues(0, 1000)
+	bar:SetMinMaxValues(0, maxValue)
 	bar.text = B.CreateFS(bar, 14)
 	B.CreateSB(bar)
 	B:SmoothBar(bar)
